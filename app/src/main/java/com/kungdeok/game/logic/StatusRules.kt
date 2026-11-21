@@ -68,5 +68,14 @@ object StatusRules {
         return c
     }
 
+    /** 상태가 낮을 때 머리 위 말풍선 문구 (SPEC 8). */
+    fun bubble(cat: CatEntity, now: Long): String? = when {
+        cat.isAsleep(now) -> "Zzz…"
+        cat.hunger < BUBBLE -> "배고파"
+        cat.mood < BUBBLE -> "놀아줘"
+        cat.sleepiness < BUBBLE -> "졸려"
+        else -> null
+    }
+
     fun clamp(v: Double): Double = v.coerceIn(0.0, 100.0)
 }

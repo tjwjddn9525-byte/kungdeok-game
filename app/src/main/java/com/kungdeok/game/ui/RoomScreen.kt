@@ -133,15 +133,6 @@ private fun TopInfo(state: GameState) {
     }
 }
 
-/** 상태가 낮을 때 머리 위 말풍선 문구 (SPEC 8). */
-fun bubbleText(cat: CatEntity, now: Long): String? = when {
-    cat.isAsleep(now) -> "Zzz…"
-    cat.hunger < StatusRules.BUBBLE -> "배고파"
-    cat.mood < StatusRules.BUBBLE -> "놀아줘"
-    cat.sleepiness < StatusRules.BUBBLE -> "졸려"
-    else -> null
-}
-
 @Composable
 private fun RoomCat(
     cat: CatEntity,
@@ -171,7 +162,7 @@ private fun RoomCat(
         modifier.clickable(remember { MutableInteractionSource() }, indication = null, onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        val bubble = bubbleText(cat, now)
+        val bubble = StatusRules.bubble(cat, now)
         Box(Modifier.height(36.dp), contentAlignment = Alignment.BottomCenter) {
             if (bubble != null) {
                 Text(

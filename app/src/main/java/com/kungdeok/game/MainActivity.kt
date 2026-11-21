@@ -11,6 +11,12 @@ import com.kungdeok.game.data.GameState
 import com.kungdeok.game.model.CatId
 import com.kungdeok.game.model.Form
 import com.kungdeok.game.ui.EvolutionScreen
+import com.kungdeok.game.ui.SettingsScreen
+import com.kungdeok.game.overlay.OverlayService
+import com.kungdeok.game.overlay.OverlaySettings
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.currentStateAsState
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -44,6 +50,7 @@ import com.kungdeok.game.ui.Target
 enum class Tab(val label: String, val icon: String) {
     ROOM("방", "🏠"),
     STATUS("상태", "📊"),
+    SETTINGS("설정", "⚙️"),
 }
 
 class MainActivity : ComponentActivity() {
@@ -59,6 +66,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        startOverlayIfEnabled()
+    }
+
+    private fun startOverlayIfEnabled() {
+        val settings = OverlaySettings(this)
+        if (settings.enabled && OverlaySettings.canDrawOverlays(this)) OverlayService.start(this)
+    }
 }
 
 @Composable
@@ -69,6 +85,11 @@ private fun App(vm: MainViewModel) {
     var target by rememberSaveable { mutableStateOf(Target.BOTH) }
     val snackbar = remember { SnackbarHostState() }
     val evolution by vm.evolution.collectAsStateWithLifecycle()
+    // 권한 화면에서 돌아올 때마다 다시 확인한다.
+    val context = LocalContext.current
+    val lifecycle by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
+    val canDrawOverlays = remember(lifecycle) { OverlaySettings.canDrawOverlays(context) }
+    val notificationsAllowed = remember(lifecycle) { Notifications.canPost(context) }
 
     LaunchedEffect(Unit) {
         vm.messages.collect {
@@ -102,6 +123,7 @@ private fun App(vm: MainViewModel) {
                         EvolveButtons(s) { vm.evolve(it) }
                     }
                     Tab.STATUS -> StatusScreen(s, now)
+                    Tab.SETTINGS -> SettingsScreen(canDrawOverlays, notificationsAllowed)
                 }
             }
         }
