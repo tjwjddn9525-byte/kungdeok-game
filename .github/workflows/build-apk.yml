@@ -1,0 +1,54 @@
+name: 디버그 APK 빌드
+
+# 어느 브랜치든 푸시할 때마다 디버그 APK를 빌드해서 Releases 에 올린다.
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: 디버그 APK 빌드
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: APK 이름 정리
+        id: apk
+        run: |
+          NAME="kungdeok-${{ github.run_number }}.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "$NAME"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Releases 에 올리기
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: "쿵덕 #${{ github.run_number }} (${{ github.ref_name }} ${{ steps.apk.outputs.short_sha }})"
+          body: |
+            브랜치: `${{ github.ref_name }}`
+            커밋: ${{ github.event.head_commit.message || github.sha }}
+
+            폰에서 아래 **${{ steps.apk.outputs.name }}** 를 눌러 내려받고 설치하세요.
+            (같은 키로 서명되어 있어서 이전 버전 위에 덮어쓰기 설치되고, 저장 데이터가 유지됩니다.)
+          files: ${{ steps.apk.outputs.name }}
+          make_latest: true

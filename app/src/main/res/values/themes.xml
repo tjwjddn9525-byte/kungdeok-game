@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.Kungdeok" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#FFF6EBDD</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>
