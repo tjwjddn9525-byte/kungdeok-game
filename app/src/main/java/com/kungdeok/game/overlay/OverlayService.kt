@@ -103,9 +103,7 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
         super.onCreate()
         settings = OverlaySettings(this)
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
-        startInForeground()
-
-        if (!OverlaySettings.canDrawOverlays(this)) {
+        if (!startInForeground() || !OverlaySettings.canDrawOverlays(this)) {
             stopSelf()
             return
         }
@@ -329,9 +327,21 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
             .build()
     }
 
-    private fun startInForeground() {
+    /**
+     * 포그라운드로 전환한다. 안드로이드 15 는 시스템이 백그라운드에서 서비스를 되살릴 때
+     * (오버레이 창이 아직 없으면) 이걸 막으므로, 실패하면 false 를 돌려주고 조용히 멈춘다.
+     * 앱을 열면 MainActivity 가 다시 켠다.
+     */
+    private fun startInForeground(): Boolean {
         val type = if (Build.VERSION.SDK_INT >= 34) ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE else 0
-        ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(), type)
+        return try {
+            ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(), type)
+            true
+        } catch (e: IllegalStateException) { // ForegroundServiceStartNotAllowedException 포함
+            false
+        } catch (e: SecurityException) {
+            false
+        }
     }
 
     @android.annotation.SuppressLint("MissingPermission") // canPost 로 확인함
