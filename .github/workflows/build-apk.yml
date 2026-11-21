@@ -30,6 +30,12 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
+      - name: 저장 데이터 마이그레이션 확인
+        run: |
+          # 버전마다 이전 버전 DB 가 새 버전으로 안전하게 올라가는지 확인 (폰 저장 데이터 보호)
+          latest=$(ls app/schemas/com.kungdeok.game.data.AppDatabase | sed 's/.json//' | sort -n | tail -1)
+          for ((v=1; v<latest; v++)); do python3 tools/check_migration.py $v $((v+1)); done
+
       - name: APK 이름 정리
         id: apk
         run: |

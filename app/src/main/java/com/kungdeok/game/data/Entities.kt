@@ -1,5 +1,6 @@
 package com.kungdeok.game.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -47,7 +48,28 @@ data class GameEntity(
     /** 평균 상태 기록을 마지막으로 남긴 시각 (1시간 간격). */
     val lastSampleAt: Long = 0,
     val createdAt: Long = 0,
-)
+
+    // ---- 2단계 (DB 버전 2) ----
+    /** 사이좋음 자연 감소(하루 -2)를 마지막으로 반영한 날 (epoch day, 0 = 아직 없음). */
+    @ColumnInfo(defaultValue = "0") val friendshipDay: Long = 0,
+    /** 질투: 마지막으로 쓰다듬은 고양이와 연속 횟수 (SPEC 5). */
+    @ColumnInfo(defaultValue = "") val lastPetCat: String = "",
+    @ColumnInfo(defaultValue = "0") val petStreak: Int = 0,
+    /** 걸음 수 (SPEC 5-1): 오늘 날짜, 오늘 걸음, 마지막 센서 값(-1 = 없음), 오늘 걸음으로 준 경험치, 1만 보 보너스 지급 여부 */
+    @ColumnInfo(defaultValue = "0") val stepDay: Long = 0,
+    @ColumnInfo(defaultValue = "0") val todaySteps: Int = 0,
+    @ColumnInfo(defaultValue = "-1") val lastStepSensor: Long = -1,
+    @ColumnInfo(defaultValue = "0") val stepExpToday: Int = 0,
+    @ColumnInfo(defaultValue = "0") val stepGoldGiven: Boolean = false,
+    /** 합체 (SPEC 6-3): 이 시각까지 쿵덕몬, 마지막으로 합체한 날, 도감 등록 여부 */
+    @ColumnInfo(defaultValue = "0") val fusionUntil: Long = 0,
+    @ColumnInfo(defaultValue = "0") val lastFusionDay: Long = 0,
+    @ColumnInfo(defaultValue = "0") val fusionSeen: Boolean = false,
+    /** 매일 선물 (SPEC 5-2): 마지막으로 받은 날 */
+    @ColumnInfo(defaultValue = "0") val lastGiftDay: Long = 0,
+) {
+    fun isFused(now: Long): Boolean = now < fusionUntil
+}
 
 /** 진화 조건(최근 N일 평균 상태)을 위한 1시간 간격 기록. */
 @Entity(tableName = "condition_samples", indices = [Index("catId", "at")])

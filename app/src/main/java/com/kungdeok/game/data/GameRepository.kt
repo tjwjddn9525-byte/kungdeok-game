@@ -4,6 +4,9 @@ import com.kungdeok.game.logic.CareAction
 import com.kungdeok.game.logic.CareResult
 import com.kungdeok.game.logic.CareRules
 import com.kungdeok.game.logic.DAY
+import com.kungdeok.game.logic.DailyRules
+import com.kungdeok.game.logic.Gift
+import com.kungdeok.game.logic.epochDay
 import com.kungdeok.game.logic.EvolutionRules
 import com.kungdeok.game.logic.ExpRules
 import com.kungdeok.game.logic.HOUR
@@ -139,6 +142,19 @@ class GameRepository(
         s = checkEvolution(s.withCat(id, evolved))
         save(s)
         cat.stage to evolved.stage
+    }
+
+    fun today(): Long = epochDay(clock())
+
+    /** 매일 선물 열기. 오늘 이미 받았으면 null. */
+    suspend fun openDailyGift(): Gift? = mutex.withLock {
+        var s = loadAndAdvance()
+        val today = today()
+        if (!DailyRules.giftAvailable(s.game, today)) return@withLock null
+        val gift = DailyRules.rollGift()
+        s = s.copy(game = DailyRules.apply(s.game, gift, today))
+        save(s)
+        gift
     }
 
     internal suspend fun save(s: GameState) {

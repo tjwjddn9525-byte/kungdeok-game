@@ -1,0 +1,325 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "a11e9201002f8522af630d6ab765a27b",
+    "entities": [
+      {
+        "tableName": "cats",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `stage` INTEGER NOT NULL, `level` INTEGER NOT NULL, `exp` REAL NOT NULL, `hunger` REAL NOT NULL, `mood` REAL NOT NULL, `cleanliness` REAL NOT NULL, `sleepiness` REAL NOT NULL, `lastPetAt` INTEGER NOT NULL, `lastFeedAt` INTEGER NOT NULL, `lastSnackAt` INTEGER NOT NULL, `lastPlayAt` INTEGER NOT NULL, `lastBrushAt` INTEGER NOT NULL, `sleepUntil` INTEGER NOT NULL, `evolutionReady` INTEGER NOT NULL, `evolutionNotified` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stage",
+            "columnName": "stage",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "level",
+            "columnName": "level",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "exp",
+            "columnName": "exp",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hunger",
+            "columnName": "hunger",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mood",
+            "columnName": "mood",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cleanliness",
+            "columnName": "cleanliness",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sleepiness",
+            "columnName": "sleepiness",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastPetAt",
+            "columnName": "lastPetAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastFeedAt",
+            "columnName": "lastFeedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSnackAt",
+            "columnName": "lastSnackAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastPlayAt",
+            "columnName": "lastPlayAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastBrushAt",
+            "columnName": "lastBrushAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sleepUntil",
+            "columnName": "sleepUntil",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "evolutionReady",
+            "columnName": "evolutionReady",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "evolutionNotified",
+            "columnName": "evolutionNotified",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "game",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `gold` INTEGER NOT NULL, `friendship` INTEGER NOT NULL, `food` INTEGER NOT NULL, `snack` INTEGER NOT NULL, `toy` INTEGER NOT NULL, `brush` INTEGER NOT NULL, `lastTickAt` INTEGER NOT NULL, `lastSampleAt` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `friendshipDay` INTEGER NOT NULL DEFAULT 0, `lastPetCat` TEXT NOT NULL DEFAULT '', `petStreak` INTEGER NOT NULL DEFAULT 0, `stepDay` INTEGER NOT NULL DEFAULT 0, `todaySteps` INTEGER NOT NULL DEFAULT 0, `lastStepSensor` INTEGER NOT NULL DEFAULT -1, `stepExpToday` INTEGER NOT NULL DEFAULT 0, `stepGoldGiven` INTEGER NOT NULL DEFAULT 0, `fusionUntil` INTEGER NOT NULL DEFAULT 0, `lastFusionDay` INTEGER NOT NULL DEFAULT 0, `fusionSeen` INTEGER NOT NULL DEFAULT 0, `lastGiftDay` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gold",
+            "columnName": "gold",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "friendship",
+            "columnName": "friendship",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "food",
+            "columnName": "food",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "snack",
+            "columnName": "snack",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "toy",
+            "columnName": "toy",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "brush",
+            "columnName": "brush",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastTickAt",
+            "columnName": "lastTickAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSampleAt",
+            "columnName": "lastSampleAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "friendshipDay",
+            "columnName": "friendshipDay",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "lastPetCat",
+            "columnName": "lastPetCat",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "petStreak",
+            "columnName": "petStreak",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "stepDay",
+            "columnName": "stepDay",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "todaySteps",
+            "columnName": "todaySteps",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "lastStepSensor",
+            "columnName": "lastStepSensor",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "-1"
+          },
+          {
+            "fieldPath": "stepExpToday",
+            "columnName": "stepExpToday",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "stepGoldGiven",
+            "columnName": "stepGoldGiven",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "fusionUntil",
+            "columnName": "fusionUntil",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "lastFusionDay",
+            "columnName": "lastFusionDay",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "fusionSeen",
+            "columnName": "fusionSeen",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "lastGiftDay",
+            "columnName": "lastGiftDay",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "condition_samples",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`rowId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `catId` TEXT NOT NULL, `at` INTEGER NOT NULL, `value` REAL NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "rowId",
+            "columnName": "rowId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "catId",
+            "columnName": "catId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "at",
+            "columnName": "at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "value",
+            "columnName": "value",
+            "affinity": "REAL",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "rowId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_condition_samples_catId_at",
+            "unique": false,
+            "columnNames": [
+              "catId",
+              "at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_condition_samples_catId_at` ON `${TABLE_NAME}` (`catId`, `at`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a11e9201002f8522af630d6ab765a27b')"
+    ]
+  }
+}

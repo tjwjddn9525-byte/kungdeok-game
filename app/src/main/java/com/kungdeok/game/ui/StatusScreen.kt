@@ -39,6 +39,11 @@ fun StatusScreen(state: GameState, now: Long) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         for (id in CatId.entries) CatCard(id, state.cat(id), now)
+        val g = state.game
+        Text(
+            "가방: 🍚 밥 ${g.food} · 🍤 간식 ${g.snack} · 🧶 장난감 ${g.toy} · 🪮 빗 ${g.brush}",
+            fontSize = 14.sp,
+        )
         Text("오늘 걸음 수: 2단계에서 연동 예정", color = Color.Gray, fontSize = 13.sp)
     }
 }

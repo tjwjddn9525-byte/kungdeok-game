@@ -11,6 +11,8 @@ import com.kungdeok.game.data.GameState
 import com.kungdeok.game.model.CatId
 import com.kungdeok.game.model.Form
 import com.kungdeok.game.ui.EvolutionScreen
+import com.kungdeok.game.ui.GiftDialog
+import com.kungdeok.game.logic.DailyRules
 import com.kungdeok.game.ui.SettingsScreen
 import com.kungdeok.game.overlay.OverlayService
 import com.kungdeok.game.overlay.OverlaySettings
@@ -127,6 +129,13 @@ private fun App(vm: MainViewModel) {
                 }
             }
         }
+    }
+
+    // 하루 한 번 앱을 열면 선물 상자 (SPEC 5-2)
+    val gift by vm.gift.collectAsStateWithLifecycle()
+    val s = state
+    if (gift != null || (s != null && evolution == null && DailyRules.giftAvailable(s.game, vm.today()))) {
+        GiftDialog(gift, vm::openGift, vm::closeGift)
     }
 
     evolution?.let { EvolutionScreen(it, vm::evolutionShown) }

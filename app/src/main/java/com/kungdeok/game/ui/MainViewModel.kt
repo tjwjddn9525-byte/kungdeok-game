@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.kungdeok.game.KungdeokApp
 import com.kungdeok.game.data.GameState
 import com.kungdeok.game.logic.CareAction
+import com.kungdeok.game.logic.Gift
 import com.kungdeok.game.logic.CareResult
 import com.kungdeok.game.model.CatId
 import kotlinx.coroutines.delay
@@ -57,6 +58,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun evolutionShown() {
         _evolution.value = null
+    }
+
+    /** 열어 본 오늘의 선물 (닫으면 null) */
+    private val _gift = MutableStateFlow<Gift?>(null)
+    val gift: StateFlow<Gift?> = _gift
+
+    fun today(): Long = repo.today()
+
+    fun openGift() {
+        viewModelScope.launch { _gift.value = repo.openDailyGift() }
+    }
+
+    fun closeGift() {
+        _gift.value = null
     }
 
     fun care(targets: List<CatId>, action: CareAction) {
