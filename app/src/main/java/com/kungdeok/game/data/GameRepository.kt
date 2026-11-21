@@ -7,6 +7,7 @@ import com.kungdeok.game.logic.DAY
 import com.kungdeok.game.logic.DailyRules
 import com.kungdeok.game.logic.Gift
 import com.kungdeok.game.logic.RelationshipRules
+import com.kungdeok.game.logic.StepRules
 import com.kungdeok.game.logic.epochDay
 import com.kungdeok.game.logic.EvolutionRules
 import com.kungdeok.game.logic.ExpRules
@@ -162,6 +163,18 @@ class GameRepository(
     }
 
     fun today(): Long = epochDay(clock())
+
+    /** 걸음 센서 값을 반영한다. 100걸음마다 두 마리 모두 경험치 +2 (하루 최대 200). */
+    suspend fun recordSteps(sensorValue: Long) = mutex.withLock {
+        var s = loadAndAdvance()
+        val u = StepRules.onSensor(s.game, sensorValue, today())
+        s = s.copy(game = u.game)
+        if (u.expForEach > 0) {
+            for (id in CatId.entries) s = s.withCat(id, ExpRules.addExp(s.cat(id), u.expForEach.toDouble()))
+        }
+        s = checkEvolution(s)
+        save(s)
+    }
 
     /** 매일 선물 열기. 오늘 이미 받았으면 null. */
     suspend fun openDailyGift(): Gift? = mutex.withLock {

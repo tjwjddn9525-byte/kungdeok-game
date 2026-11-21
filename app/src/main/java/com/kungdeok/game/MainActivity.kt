@@ -3,6 +3,7 @@ package com.kungdeok.game
 import android.Manifest
 import android.os.Build
 import android.os.Bundle
+import androidx.lifecycle.lifecycleScope
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Button
@@ -57,20 +58,36 @@ enum class Tab(val label: String, val icon: String) {
 
 class MainActivity : ComponentActivity() {
     private val vm: MainViewModel by viewModels()
+    private val steps by lazy { StepTracker(this, lifecycleScope) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent { KungdeokTheme { App(vm) } }
-        if (Build.VERSION.SDK_INT >= 33 && !Notifications.canPost(this)) {
-            registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
-                .launch(Manifest.permission.POST_NOTIFICATIONS)
+        // 알림(진화 알림, 숨기기 버튼)과 걸음 수 권한을 한 번에 묻는다.
+        val wanted = buildList {
+            if (Build.VERSION.SDK_INT >= 33 && !Notifications.canPost(this@MainActivity)) {
+                add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            if (Build.VERSION.SDK_INT >= 29 && !StepTracker.hasPermission(this@MainActivity)) {
+                add(Manifest.permission.ACTIVITY_RECOGNITION)
+            }
+        }
+        if (wanted.isNotEmpty()) {
+            registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { steps.start() }
+                .launch(wanted.toTypedArray())
         }
     }
 
     override fun onResume() {
         super.onResume()
         startOverlayIfEnabled()
+        steps.start()
+    }
+
+    override fun onPause() {
+        steps.stop()
+        super.onPause()
     }
 
     private fun startOverlayIfEnabled() {

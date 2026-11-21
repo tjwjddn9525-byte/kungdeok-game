@@ -22,6 +22,7 @@ import com.kungdeok.game.KungdeokApp
 import com.kungdeok.game.MainActivity
 import com.kungdeok.game.Notifications
 import com.kungdeok.game.R
+import com.kungdeok.game.StepTracker
 import com.kungdeok.game.data.GameState
 import com.kungdeok.game.logic.CareAction
 import com.kungdeok.game.logic.CareResult
@@ -47,6 +48,7 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
     private var tickJob: Job? = null
     private var director: RelationshipDirector? = null
     private var screenWidth = 0
+    private val steps by lazy { StepTracker(this, lifecycleScope) }
 
     private val frameCallback = object : Choreographer.FrameCallback {
         override fun doFrame(frameTimeNanos: Long) {
@@ -92,6 +94,7 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
                 setOpacity(settings.opacity)
             }
         }
+        steps.start()
         director = RelationshipDirector(cats.getValue(CatId.KUNG), cats.getValue(CatId.NODEOK)) { screenWidth }
         settings.prefs.registerOnSharedPreferenceChangeListener(prefsListener)
         ContextCompat.registerReceiver(
@@ -144,6 +147,7 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
     }
 
     override fun onDestroy() {
+        if (cats.isNotEmpty()) steps.stop()
         pause()
         hideCats()
         if (::settings.isInitialized) settings.prefs.unregisterOnSharedPreferenceChangeListener(prefsListener)

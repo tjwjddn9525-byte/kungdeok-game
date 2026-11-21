@@ -27,6 +27,11 @@ import androidx.compose.ui.unit.sp
 import com.kungdeok.game.data.CatEntity
 import com.kungdeok.game.data.GameState
 import com.kungdeok.game.logic.EvolutionRules
+import com.kungdeok.game.logic.StepRules
+import com.kungdeok.game.logic.epochDay
+import com.kungdeok.game.StepTracker
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import com.kungdeok.game.logic.ExpRules
 import com.kungdeok.game.model.CatId
 import com.kungdeok.game.model.Form
@@ -44,7 +49,43 @@ fun StatusScreen(state: GameState, now: Long) {
             "가방: 🍚 밥 ${g.food} · 🍤 간식 ${g.snack} · 🧶 장난감 ${g.toy} · 🪮 빗 ${g.brush}",
             fontSize = 14.sp,
         )
-        Text("오늘 걸음 수: 2단계에서 연동 예정", color = Color.Gray, fontSize = 13.sp)
+        StepsCard(state)
+    }
+}
+
+@Composable
+private fun StepsCard(state: GameState) {
+    val context = LocalContext.current
+    val today = remember(state.game.stepDay) { epochDay(System.currentTimeMillis()) }
+    val steps = StepRules.todaySteps(state.game, today)
+    val exp = if (state.game.stepDay == today) state.game.stepExpToday else 0
+    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9F1))) {
+        Column(Modifier.padding(16.dp)) {
+            Text("👣 오늘 걸음 수  ${"%,d".format(steps)}보", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Spacer(Modifier.height(6.dp))
+            LinearProgressIndicator(
+                progress = { (steps / StepRules.GOAL_STEPS.toFloat()).coerceIn(0f, 1f) },
+                modifier = Modifier.fillMaxWidth().height(8.dp),
+                color = Color(0xFF5BAA6A),
+                trackColor = Color(0xFFE8DED2),
+                drawStopIndicator = {},
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "걸음 경험치 오늘 $exp / ${StepRules.DAILY_EXP_CAP} (100보마다 두 마리 +2) · 1만 보 달성 시 골드 ${StepRules.GOAL_GOLD}",
+                fontSize = 12.sp,
+                color = Color.Gray,
+            )
+            when {
+                !StepTracker.available(context) -> Text("이 폰에는 걸음 센서가 없어요.", fontSize = 12.sp, color = Color(0xFFB3261E))
+                !StepTracker.hasPermission(context) -> Text(
+                    "걸음 수를 세려면 '신체 활동' 권한을 허용해 주세요 (설정 → 애플리케이션 → 쿵덕 → 권한).",
+                    fontSize = 12.sp,
+                    color = Color(0xFFB3261E),
+                )
+                else -> Text("걸음은 앱을 열거나 화면 위 고양이가 떠 있을 때 반영돼요.", fontSize = 12.sp, color = Color.Gray)
+            }
+        }
     }
 }
 
