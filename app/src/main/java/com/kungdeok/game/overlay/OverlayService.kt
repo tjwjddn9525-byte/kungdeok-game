@@ -100,6 +100,8 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
             ContextCompat.RECEIVER_NOT_EXPORTED,
         )
 
+        // DB 가 비어 있으면 state 가 안 나오므로 한 번 계산해 둔다.
+        lifecycleScope.launch { repo.tick() }
         lifecycleScope.launch {
             repo.state.collect { s ->
                 lastState = s
