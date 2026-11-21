@@ -15,6 +15,7 @@ import com.kungdeok.game.ui.EvolutionScreen
 import com.kungdeok.game.ui.GiftDialog
 import com.kungdeok.game.ui.DexScreen
 import com.kungdeok.game.ui.ShopScreen
+import com.kungdeok.game.ui.TowerScreen
 import com.kungdeok.game.logic.DailyRules
 import com.kungdeok.game.logic.FusionRules
 import com.kungdeok.game.ui.FusionScreen
@@ -58,6 +59,7 @@ enum class Tab(val label: String, val icon: String) {
     ROOM("방", "🏠"),
     STATUS("상태", "📊"),
     DEX("도감", "📖"),
+    TOWER("캣타워", "🗼"),
     SHOP("상점", "🛒"),
     SETTINGS("설정", "⚙️"),
 }
@@ -111,6 +113,8 @@ private fun App(vm: MainViewModel) {
     val snackbar = remember { SnackbarHostState() }
     val evolution by vm.evolution.collectAsStateWithLifecycle()
     val fusion by vm.fusion.collectAsStateWithLifecycle()
+    val battle by vm.battle.collectAsStateWithLifecycle()
+    val reward by vm.reward.collectAsStateWithLifecycle()
     // 권한 화면에서 돌아올 때마다 다시 확인한다.
     val context = LocalContext.current
     val lifecycle by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
@@ -160,6 +164,7 @@ private fun App(vm: MainViewModel) {
                         }
                     }
                     Tab.STATUS -> StatusScreen(s, now, vm::useBag)
+                    Tab.TOWER -> TowerScreen(s, now, battle, reward, vm::startBattle, vm::battleAction, vm::leaveBattle)
                     Tab.SHOP -> ShopScreen(s, vm::buy, vm::togglePlace, vm::toggleWear)
                     Tab.DEX -> DexScreen(s)
                     Tab.SETTINGS -> SettingsScreen(canDrawOverlays, notificationsAllowed)

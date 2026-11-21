@@ -10,6 +10,10 @@ import com.kungdeok.game.logic.RelationshipRules
 import com.kungdeok.game.logic.StepRules
 import com.kungdeok.game.logic.FusionRules
 import com.kungdeok.game.logic.BuyResult
+import com.kungdeok.game.logic.Battle
+import com.kungdeok.game.logic.BattleResult
+import com.kungdeok.game.logic.BattleRules
+import com.kungdeok.game.logic.Reward
 import com.kungdeok.game.logic.ShopItem
 import com.kungdeok.game.logic.ShopKind
 import com.kungdeok.game.logic.ShopRules
@@ -168,6 +172,61 @@ class GameRepository(
     }
 
     fun today(): Long = epochDay(clock())
+
+    // ---- 캣타워 (3단계) ----
+
+    /** 도전 시작: 두 마리 배고픔·졸림을 조금 쓰고 전투를 만든다. 못 하면 이유 문자열. */
+    suspend fun startBattle(floor: Int): Pair<Battle?, String?> = mutex.withLock {
+        var s = loadAndAdvance()
+        val now = clock()
+        val block = BattleRules.entryBlock(s.kung, s.nodeok, now, s.game.isFused(now))
+            ?: if (floor > s.game.towerFloor + 1) "아직 열리지 않은 층이에요" else null
+        if (block != null) {
+            save(s)
+            return@withLock null to block
+        }
+        for (id in CatId.entries) {
+            val c = s.cat(id)
+            s = s.withCat(
+                id,
+                c.copy(
+                    hunger = StatusRules.clamp(c.hunger - BattleRules.ENTRY_COST),
+                    sleepiness = StatusRules.clamp(c.sleepiness - BattleRules.ENTRY_COST),
+                ),
+            )
+        }
+        save(s)
+        BattleRules.start(floor, s.kung, s.nodeok) to null
+    }
+
+    /** 전투 중 간식 하나 쓰기 */
+    suspend fun consumeSnack(): Boolean = mutex.withLock {
+        var s = loadAndAdvance()
+        if (s.game.snack <= 0) return@withLock false
+        s = s.copy(game = s.game.copy(snack = s.game.snack - 1))
+        save(s)
+        true
+    }
+
+    /** 전투가 끝났을 때. 이기면 보상, 지면 두 마리 기분 -5. */
+    suspend fun finishBattle(battle: Battle): Reward? = mutex.withLock {
+        var s = loadAndAdvance()
+        var reward: Reward? = null
+        if (battle.result == BattleResult.WIN) {
+            val r = BattleRules.reward(battle.floor, s.game.towerFloor)
+            reward = r
+            s = s.copy(game = s.game.copy(gold = s.game.gold + r.gold, towerFloor = maxOf(s.game.towerFloor, battle.floor)))
+            for (id in CatId.entries) s = s.withCat(id, ExpRules.addExp(s.cat(id), r.exp.toDouble()))
+        } else {
+            for (id in CatId.entries) {
+                val c = s.cat(id)
+                s = s.withCat(id, c.copy(mood = StatusRules.clamp(c.mood - 5)))
+            }
+        }
+        s = checkEvolution(s)
+        save(s)
+        reward
+    }
 
     // ---- 상점과 꾸미기 (3단계) ----
 

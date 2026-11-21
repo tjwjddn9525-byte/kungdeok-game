@@ -8,6 +8,11 @@ import com.kungdeok.game.data.GameState
 import com.kungdeok.game.logic.CareAction
 import com.kungdeok.game.logic.Gift
 import com.kungdeok.game.logic.BuyResult
+import com.kungdeok.game.logic.Battle
+import com.kungdeok.game.logic.BattleAction
+import com.kungdeok.game.logic.BattleResult
+import com.kungdeok.game.logic.BattleRules
+import com.kungdeok.game.logic.Reward
 import com.kungdeok.game.logic.ShopItem
 import com.kungdeok.game.logic.CareResult
 import com.kungdeok.game.model.CatId
@@ -88,6 +93,45 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun closeGift() {
         _gift.value = null
+    }
+
+    // ---- 캣타워 (3단계) ----
+    private val _battle = MutableStateFlow<Battle?>(null)
+    val battle: StateFlow<Battle?> = _battle
+    private val _reward = MutableStateFlow<Reward?>(null)
+    val reward: StateFlow<Reward?> = _reward
+
+    fun startBattle(floor: Int) {
+        viewModelScope.launch {
+            val (b, block) = repo.startBattle(floor)
+            if (b != null) {
+                _reward.value = null
+                _battle.value = b
+            } else if (block != null) {
+                _messages.emit(block)
+            }
+        }
+    }
+
+    fun battleAction(action: BattleAction) {
+        viewModelScope.launch {
+            val b = _battle.value ?: return@launch
+            if (b.result != null) return@launch
+            if (action == BattleAction.SNACK && !repo.consumeSnack()) return@launch
+            val next = BattleRules.act(b, action)
+            _battle.value = next
+            if (next.result != null) _reward.value = repo.finishBattle(next)
+        }
+    }
+
+    /** 끝난 전투를 닫거나, 진행 중인 전투에서 도망친다 (진 것으로 침). */
+    fun leaveBattle() {
+        viewModelScope.launch {
+            val b = _battle.value ?: return@launch
+            if (b.result == null) repo.finishBattle(b.copy(result = BattleResult.LOSE))
+            _battle.value = null
+            _reward.value = null
+        }
     }
 
     // ---- 상점 (3단계) ----

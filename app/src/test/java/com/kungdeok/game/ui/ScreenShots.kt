@@ -50,6 +50,17 @@ class ScreenShots {
         KungdeokTheme { ShopScreen(rich, {}, {}, { _, _ -> }) }
     }
 
+    @Test fun towerLobby() = paparazzi.snapshot {
+        KungdeokTheme { TowerScreen(state.copy(game = state.game.copy(towerFloor = 4)), 1000L, null, null, {}, {}, {}) }
+    }
+
+    @Test fun towerBattle() = paparazzi.snapshot {
+        var b = com.kungdeok.game.logic.BattleRules.start(5, state.kung, state.nodeok)
+        b = com.kungdeok.game.logic.BattleRules.act(b, com.kungdeok.game.logic.BattleAction.KUNG_SKILL, kotlin.random.Random(3))
+        b = com.kungdeok.game.logic.BattleRules.act(b, com.kungdeok.game.logic.BattleAction.ATTACK, kotlin.random.Random(4))
+        KungdeokTheme { TowerScreen(state, 1000L, b, null, {}, {}, {}) }
+    }
+
     @Test fun dex() = paparazzi.snapshot {
         KungdeokTheme { DexScreen(state) }
     }
