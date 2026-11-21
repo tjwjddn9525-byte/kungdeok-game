@@ -91,6 +91,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         startOverlayIfEnabled()
         steps.start()
+        DawnAlarm.schedule(this)
     }
 
     override fun onPause() {

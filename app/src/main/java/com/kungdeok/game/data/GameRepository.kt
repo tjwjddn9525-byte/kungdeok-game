@@ -173,6 +173,20 @@ class GameRepository(
 
     fun today(): Long = epochDay(clock())
 
+    // ---- 실제 버릇 (3단계) ----
+
+    /** 오늘 새벽 깨우기를 아직 안 했으면 기록하고, 깨우러 올 (더 배고픈) 고양이를 돌려준다. */
+    suspend fun markDawn(today: Long): CatId? = mutex.withLock {
+        var s = loadAndAdvance()
+        if (s.game.lastDawnDay == today) {
+            save(s)
+            return@withLock null
+        }
+        s = s.copy(game = s.game.copy(lastDawnDay = today))
+        save(s)
+        if (s.kung.hunger <= s.nodeok.hunger) CatId.KUNG else CatId.NODEOK
+    }
+
     // ---- 캣타워 (3단계) ----
 
     /** 도전 시작: 두 마리 배고픔·졸림을 조금 쓰고 전투를 만든다. 못 하면 이유 문자열. */

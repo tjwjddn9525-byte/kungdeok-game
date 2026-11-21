@@ -23,6 +23,8 @@ import com.kungdeok.game.MainActivity
 import com.kungdeok.game.Notifications
 import com.kungdeok.game.R
 import com.kungdeok.game.StepTracker
+import com.kungdeok.game.DawnAlarm
+import com.kungdeok.game.logic.epochDay
 import com.kungdeok.game.data.GameState
 import com.kungdeok.game.logic.CareAction
 import com.kungdeok.game.logic.CareResult
@@ -74,6 +76,7 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
             val dt = if (lastFrameNanos == 0L) 0f else ((frameTimeNanos - lastFrameNanos) / 1e9f).coerceAtMost(0.1f)
             lastFrameNanos = frameTimeNanos
             checkFusion()
+            checkDawn(frameTimeNanos)
             if (!fused) director?.step(dt)
             activeViews.forEach { it.step(dt) }
             Choreographer.getInstance().postFrameCallback(this)
@@ -137,7 +140,10 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
                 lastState = s
                 director?.friendship = s.game.friendship
                 val now = System.currentTimeMillis()
-                cats.forEach { (id, view) -> view.update(s.cat(id), now) }
+                cats.forEach { (id, view) ->
+                    view.update(s.cat(id), now)
+                    view.hasBox = "box" in s.game.placed
+                }
                 fusionView?.update(s.kung, now)
                 if (!screenReady) {
                     screenReady = true
@@ -214,6 +220,23 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
 
     private fun hideCats() {
         allViews.forEach { runCatching { it.detach() } }
+    }
+
+    private var lastDawnCheck = 0L
+    private var dawnFussDay = 0L
+
+    /** 새벽 5~8시에 처음 화면을 켜면 두 마리가 밥 달라고 우다다 (하루 한 번) */
+    private fun checkDawn(frameTimeNanos: Long) {
+        if (frameTimeNanos - lastDawnCheck < 5_000_000_000L) return
+        lastDawnCheck = frameTimeNanos
+        if (!settings.dawnWake || fused || settings.hidden) return
+        val hour = java.time.LocalTime.now().hour
+        if (hour < DawnAlarm.START_HOUR || hour >= 8) return
+        val today = epochDay(System.currentTimeMillis())
+        if (dawnFussDay == today) return
+        dawnFussDay = today
+        cats.values.forEach { it.dawnCall() }
+        lifecycleScope.launch { repo.markDawn(today) }
     }
 
     /** 합체가 시작되거나 30분이 끝나면 화면 위 모습을 바꾼다. */

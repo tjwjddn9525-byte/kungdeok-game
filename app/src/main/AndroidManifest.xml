@@ -26,6 +26,10 @@
             </intent-filter>
         </activity>
 
+        <receiver
+            android:name=".DawnReceiver"
+            android:exported="false" />
+
         <service
             android:name=".overlay.OverlayService"
             android:exported="false"

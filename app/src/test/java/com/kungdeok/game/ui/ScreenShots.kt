@@ -126,4 +126,34 @@ class ScreenShots {
         }
         paparazzi.snapshot(row)
     }
+
+    @Test fun overlayHabits() {
+        val ctx = paparazzi.context
+        val wm = ctx.getSystemService(android.content.Context.WINDOW_SERVICE) as android.view.WindowManager
+        val cb = object : com.kungdeok.game.overlay.CatOverlayCallbacks {
+            override fun onTap(cat: com.kungdeok.game.model.CatId) {}
+            override fun onLongPress(cat: com.kungdeok.game.model.CatId) {}
+        }
+        val d = ctx.resources.displayMetrics.density
+        val row = android.widget.LinearLayout(ctx).apply {
+            setBackgroundColor(android.graphics.Color.parseColor("#3A4A66"))
+            gravity = android.view.Gravity.BOTTOM
+        }
+        val habits = listOf(
+            com.kungdeok.game.overlay.Behavior.BOX,
+            com.kungdeok.game.overlay.Behavior.ZOOM,
+            com.kungdeok.game.overlay.Behavior.KNEAD,
+        )
+        for ((i, h) in habits.withIndex()) {
+            val id = if (i % 2 == 0) com.kungdeok.game.model.CatId.NODEOK else com.kungdeok.game.model.CatId.KUNG
+            val v = com.kungdeok.game.overlay.CatOverlay(ctx, wm, id, cb)
+            v.update(CatEntity(id.id, stage = 3, accessory = if (i == 0) "crown" else ""), 1000L)
+            v.setScreen(1080, 2000, true)
+            v.forceBehavior(h, 100f)
+            if (h == com.kungdeok.game.overlay.Behavior.KNEAD) v.showTempBubble("꾹꾹", 5f)
+            v.step(0.05f)
+            row.addView(v, android.widget.LinearLayout.LayoutParams((140 * d).toInt(), (140 * d).toInt()))
+        }
+        paparazzi.snapshot(row)
+    }
 }

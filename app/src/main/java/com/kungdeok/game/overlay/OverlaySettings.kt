@@ -33,7 +33,13 @@ class OverlaySettings(context: Context) {
         get() = prefs.getFloat(KEY_OPACITY, 1f)
         set(v) = prefs.edit().putFloat(KEY_OPACITY, v.coerceIn(0.3f, 1f)).apply()
 
+    /** 새벽 5~6시 깨우기 알림 (실제 버릇) */
+    var dawnWake: Boolean
+        get() = prefs.getBoolean(KEY_DAWN, true)
+        set(v) = prefs.edit().putBoolean(KEY_DAWN, v).apply()
+
     companion object {
+        const val KEY_DAWN = "dawn_wake"
         const val KEY_ENABLED = "enabled"
         const val KEY_HIDDEN = "hidden"
         const val KEY_SIZE = "size"

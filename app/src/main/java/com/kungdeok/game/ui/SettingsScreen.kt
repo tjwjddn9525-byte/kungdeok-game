@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kungdeok.game.Notifications
+import com.kungdeok.game.DawnAlarm
 import com.kungdeok.game.overlay.OverlayService
 import com.kungdeok.game.overlay.OverlaySettings
 import com.kungdeok.game.overlay.OverlaySize
@@ -110,6 +111,26 @@ fun SettingsScreen(canDrawOverlays: Boolean, notificationsAllowed: Boolean) {
                 onValueChange = { opacity = it },
                 onValueChangeFinished = { settings.opacity = opacity },
                 valueRange = 0.3f..1f,
+            )
+        }
+
+        var dawn by remember { mutableStateOf(settings.dawnWake) }
+        SettingCard("실제 버릇") {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("새벽에 깨우기", fontSize = 14.sp)
+                    Text("새벽 5~6시에 밥 달라고 깨우는 알림, 그 시간에 화면을 켜면 우다다", fontSize = 12.sp, color = Color.Gray)
+                }
+                Switch(checked = dawn, onCheckedChange = {
+                    dawn = it
+                    settings.dawnWake = it
+                    DawnAlarm.schedule(context)
+                })
+            }
+            Text(
+                "그 밖의 버릇: 밤에 우다다, 기분 좋으면 꾹꾹이, 박스를 사 두면 박스에 쏙.",
+                fontSize = 12.sp,
+                color = Color.Gray,
             )
         }
 

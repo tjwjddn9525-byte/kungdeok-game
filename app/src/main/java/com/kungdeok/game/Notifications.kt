@@ -17,6 +17,7 @@ import com.kungdeok.game.model.Form
 object Notifications {
     const val CHANNEL_EVOLUTION = "evolution"
     const val CHANNEL_OVERLAY = "overlay"
+    const val CHANNEL_HABIT = "habit"
 
     fun createChannels(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -24,6 +25,10 @@ object Notifications {
         nm.createNotificationChannel(
             NotificationChannel(CHANNEL_EVOLUTION, "진화 알림", NotificationManager.IMPORTANCE_DEFAULT)
                 .apply { description = "진화할 수 있을 때 알려 줘요" },
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL_HABIT, "새벽에 깨우기", NotificationManager.IMPORTANCE_DEFAULT)
+                .apply { description = "새벽 5~6시에 고양이가 밥 달라고 깨워요 (설정에서 끌 수 있어요)" },
         )
         nm.createNotificationChannel(
             NotificationChannel(CHANNEL_OVERLAY, "화면 위 고양이", NotificationManager.IMPORTANCE_LOW)

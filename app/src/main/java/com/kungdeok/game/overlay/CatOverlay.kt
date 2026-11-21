@@ -28,7 +28,11 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 /** 화면 위를 돌아다니는 행동 패턴 (SPEC 8): 걷기 → 앉기 → 두리번 → 잠자기 랜덤 반복 */
-enum class Behavior { WALK, SIT, LOOK, NAP }
+enum class Behavior {
+    WALK, SIT, LOOK, NAP,
+    /** 실제 버릇 (3단계): 박스에 쏙, 우다다, 꾹꾹이 */
+    BOX, ZOOM, KNEAD,
+}
 
 /** 관계 연출용 특수 효과 */
 enum class Effect { NONE, HEARTS, DUST }
@@ -79,6 +83,9 @@ class CatOverlay(
     private var messy = false
     private var sizeScale = 1f
     private var accessoryIcon: String? = null
+    /** 방에 박스가 놓여 있으면 화면 위에서도 가끔 박스에 들어간다. */
+    var hasBox = false
+    private var happy = false
 
     // ---- 화면 위 움직임 ----
     private val params = WindowManager.LayoutParams(
@@ -132,6 +139,14 @@ class CatOverlay(
     private val zPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE; textSize = dp(12f); typeface = Typeface.DEFAULT_BOLD
         setShadowLayer(dp(1.5f), 0f, 0f, Color.parseColor("#5A3A28"))
+    }
+    private val boxPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#C8935A") }
+    private val boxLine = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#7A4E25"); style = Paint.Style.STROKE; strokeWidth = dp(1.5f)
+    }
+    private val boxTape = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#E8D2A8"); strokeWidth = dp(3f) }
+    private val speedPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(200, 255, 255, 255); strokeWidth = dp(2f); strokeCap = Paint.Cap.ROUND
     }
     private val accessoryPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = dp(13f) }
     private val heartPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -221,6 +236,7 @@ class CatOverlay(
             return
         }
         accessoryIcon = ShopItem.byId(state.accessory)?.icon
+        happy = state.mood >= 60
         bubble = StatusRules.bubble(state, now)
         asleep = state.isAsleep(now)
         sulking = state.mood < StatusRules.LOW && !asleep
@@ -266,9 +282,24 @@ class CatOverlay(
         heartTime = 1.2f
     }
 
-    fun showTempBubble(text: String) {
+    fun showTempBubble(text: String, seconds: Float = 1.6f) {
         tempBubble = text
-        tempBubbleTime = 1.6f
+        tempBubbleTime = seconds
+    }
+
+    /** 테스트용: 행동을 강제로 정한다 */
+    internal fun forceBehavior(b: Behavior, seconds: Float) {
+        behavior = b
+        behaviorLeft = seconds
+    }
+
+    /** 새벽에 깨우기: 화면이 켜지면 우다다 달리며 밥 달라고 운다. */
+    fun dawnCall() {
+        if (asleep || fusion) return
+        cancelScripts()
+        behavior = Behavior.ZOOM
+        behaviorLeft = 4f
+        showTempBubble(if (cat == CatId.KUNG) "냐아아앙! 밥!" else "…밥.", 6f)
     }
 
     /** 매 프레임 호출. dt 는 초. */
@@ -327,7 +358,15 @@ class CatOverlay(
                     lookTimer = 0.6f + Random.nextFloat() * 0.8f
                 }
             }
-            Behavior.SIT, Behavior.NAP -> Unit
+            Behavior.ZOOM -> {
+                // 우다다: 아주 빠르게 달리다 벽에서 튕겨 나온다
+                x += direction * dp(170f) * dt
+                val maxX = (screenW - viewW).toFloat().coerceAtLeast(0f)
+                if (x <= 0f) { x = 0f; direction = 1 }
+                if (x >= maxX) { x = maxX; direction = -1 }
+                facingRight = direction > 0
+            }
+            Behavior.SIT, Behavior.NAP, Behavior.BOX, Behavior.KNEAD -> Unit
         }
     }
 
@@ -367,6 +406,7 @@ class CatOverlay(
     }
 
     private fun pickBehavior() {
+        if (!sulking && !fusion && pickHabit()) return
         val r = Random.nextFloat()
         behavior = when {
             sulking -> if (r < 0.3f) Behavior.WALK else Behavior.SIT
@@ -380,8 +420,41 @@ class CatOverlay(
             Behavior.SIT -> 3f + Random.nextFloat() * 4f
             Behavior.LOOK -> 2f + Random.nextFloat() * 2f
             Behavior.NAP -> 6f + Random.nextFloat() * 8f
+            else -> 3f
         }
         if (behavior == Behavior.WALK) direction = if (Random.nextBoolean()) 1 else -1
+    }
+
+    /**
+     * 실제 버릇 (SPEC 10, 3단계). 고르면 true.
+     * - 우다다: 밤(21시~새벽 2시)에 자주
+     * - 박스: 방에 박스가 있을 때
+     * - 꾹꾹이: 기분이 좋을 때 자주
+     */
+    private fun pickHabit(): Boolean {
+        val hour = java.time.LocalTime.now().hour
+        val zoom = if (hour >= 21 || hour < 2) 0.12f else 0.03f
+        val box = if (hasBox) 0.10f else 0f
+        val knead = if (happy) 0.07f else 0.02f
+        val r = Random.nextFloat()
+        when {
+            r < zoom -> {
+                behavior = Behavior.ZOOM
+                behaviorLeft = 1.5f + Random.nextFloat() * 1.5f
+                direction = if (Random.nextBoolean()) 1 else -1
+            }
+            r < zoom + box -> {
+                behavior = Behavior.BOX
+                behaviorLeft = 8f + Random.nextFloat() * 8f
+            }
+            r < zoom + box + knead -> {
+                behavior = Behavior.KNEAD
+                behaviorLeft = 3f + Random.nextFloat() * 2f
+                showTempBubble("꾹꾹", 2.5f)
+            }
+            else -> return false
+        }
+        return true
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -392,6 +465,7 @@ class CatOverlay(
         val bmp = when {
             dragging || falling -> base
             behavior == Behavior.WALK && walkFrames.size == 2 -> walkFrames[(time * 6f).toInt() % 2]
+            behavior == Behavior.ZOOM && walkFrames.size == 2 -> walkFrames[(time * 14f).toInt() % 2]
             behavior == Behavior.NAP -> sleepFrame ?: base
             else -> base
         }
@@ -408,10 +482,13 @@ class CatOverlay(
         when {
             dragging -> Unit
             behavior == Behavior.WALK && !falling -> hop = abs(sin(time * 9f)) * dp(4f)
+            behavior == Behavior.ZOOM -> hop = abs(sin(time * 20f)) * dp(7f)
+            behavior == Behavior.KNEAD -> squash = 1f - 0.05f * abs(sin(time * 8f))
             behavior == Behavior.NAP -> squash = 1f - 0.03f * (1 + sin(time * 2.5f))
             effect == Effect.DUST -> hop = abs(sin(time * 23f)) * dp(5f)
         }
         val dh2 = dh * squash
+        val inBox = behavior == Behavior.BOX && !dragging && !falling
         dstRect.set(cx - dw / 2, bottom - dh2 - hop, cx + dw / 2, bottom - hop)
         srcRect.set(0, 0, bmp.width, bmp.height)
 
@@ -421,6 +498,17 @@ class CatOverlay(
         if (flip) canvas.scale(-1f, 1f, cx, 0f)
         canvas.drawBitmap(bmp, srcRect, dstRect, spritePaint)
         canvas.restore()
+        // 박스에 쏙: 몸 아래쪽 40%를 종이 박스가 가린다 (어떤 형태든 머리는 보이게)
+        if (inBox) drawBox(canvas, cx, bottom, dw * 0.96f, dh2 * 0.42f)
+        if (behavior == Behavior.ZOOM) {
+            // 우다다 속도선
+            val back = if (facingRight) -1 else 1
+            for (i in 0 until 3) {
+                val ly = bottom - dh2 * (0.25f + i * 0.2f)
+                val lx = cx + back * dw * 0.45f
+                canvas.drawLine(lx, ly, lx + back * dp(10f + i * 4f), ly, speedPaint)
+            }
+        }
 
         val top = dstRect.top
         accessoryIcon?.let {
@@ -458,6 +546,17 @@ class CatOverlay(
         }
         val text = tempBubble ?: bubble?.takeIf { it != "Zzz…" }
         if (text != null) drawBubble(canvas, text, cx, top - dp(4f))
+    }
+
+    private fun drawBox(canvas: Canvas, cx: Float, bottom: Float, w: Float, h: Float) {
+        val r = RectF(cx - w / 2, bottom - h, cx + w / 2, bottom)
+        canvas.drawRect(r, boxPaint)
+        canvas.drawRect(r, boxLine)
+        // 열린 날개
+        val flap = h * 0.35f
+        canvas.drawLine(r.left, r.top, r.left - w * 0.08f, r.top - flap, boxLine)
+        canvas.drawLine(r.right, r.top, r.right + w * 0.08f, r.top - flap, boxLine)
+        canvas.drawLine(r.left + w * 0.5f, r.top, r.left + w * 0.5f, r.top + h * 0.3f, boxTape)
     }
 
     private fun drawBubble(canvas: Canvas, text: String, cx: Float, bottomY: Float) {
