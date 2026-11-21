@@ -27,6 +27,11 @@ class ScreenShots {
         KungdeokTheme { RoomScreen(state, 1000L, Target.BOTH, {}, {}) }
     }
 
+    @Test fun roomFused() = paparazzi.snapshot {
+        val fusedState = state.copy(game = state.game.copy(fusionUntil = 1000L + 20 * 60_000L))
+        KungdeokTheme { RoomScreen(fusedState, 1000L, Target.BOTH, {}, {}) }
+    }
+
     @Test fun dex() = paparazzi.snapshot {
         KungdeokTheme { DexScreen(state) }
     }

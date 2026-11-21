@@ -60,6 +60,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _evolution.value = null
     }
 
+    private val _fusion = MutableStateFlow<FusionEvent?>(null)
+    val fusion: StateFlow<FusionEvent?> = _fusion
+
+    fun fuse() {
+        viewModelScope.launch {
+            val first = repo.fuse() ?: return@launch
+            _fusion.value = FusionEvent(firstTime = first)
+        }
+    }
+
+    fun fusionShown() {
+        _fusion.value = null
+    }
+
     /** 열어 본 오늘의 선물 (닫으면 null) */
     private val _gift = MutableStateFlow<Gift?>(null)
     val gift: StateFlow<Gift?> = _gift

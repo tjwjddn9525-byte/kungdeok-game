@@ -59,6 +59,8 @@ class CatOverlay(
     private val wm: WindowManager,
     val cat: CatId,
     private val callbacks: CatOverlayCallbacks,
+    /** true 면 합체한 쿵덕몬 (상태는 [cat] 쪽 것을 받지만 그림과 크기는 합체 궁극체). */
+    val fusion: Boolean = false,
 ) : View(context) {
 
     private val density = resources.displayMetrics.density
@@ -156,6 +158,12 @@ class CatOverlay(
         attached = false
     }
 
+    /** 합체/해제할 때 [other] 가 있던 자리에서 나타나게 한다. */
+    fun moveCenterTo(cx: Float) {
+        x = windowXFor(cx)
+        y = groundY
+    }
+
     /** 화면 크기가 바뀌면 (처음, 회전) 바닥 위치를 다시 잡는다. */
     fun setScreen(width: Int, bottom: Int, firstTime: Boolean) {
         screenW = width
@@ -183,12 +191,22 @@ class CatOverlay(
 
     /** 게임 상태가 바뀔 때마다 불린다. */
     fun update(state: CatEntity, now: Long) {
-        if (state.stage != stage || sprite == null) {
+        val newStage = if (fusion) Stage.FUSION.level else state.stage
+        if (newStage != stage || sprite == null) {
             val oldBottom = groundY + viewH
-            stage = state.stage
-            sprite = Sprites.bitmap(context, Form.of(cat, stage).smallAsset)
+            stage = newStage
+            val form = if (fusion) Form.FUSION else Form.of(cat, stage)
+            sprite = Sprites.bitmap(context, form.smallAsset)
             groundY = oldBottom - viewH
             relayout()
+        }
+        if (fusion) {
+            bubble = null
+            asleep = false
+            sulking = false
+            messy = false
+            invalidate()
+            return
         }
         bubble = StatusRules.bubble(state, now)
         asleep = state.isAsleep(now)

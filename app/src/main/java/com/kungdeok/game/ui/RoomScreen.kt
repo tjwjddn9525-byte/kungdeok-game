@@ -84,7 +84,9 @@ fun RoomScreen(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.Bottom,
             ) {
-                for (id in CatId.entries) {
+                if (state.game.isFused(now)) {
+                    FusedCat(state.game.fusionUntil - now)
+                } else for (id in CatId.entries) {
                     RoomCat(
                         cat = state.cat(id),
                         id = id,
@@ -135,6 +137,29 @@ private fun TopInfo(state: GameState) {
             " (${RelationshipRules.closeness(state.game.friendship).label})",
             fontSize = 13.sp,
             color = Choco,
+        )
+    }
+}
+
+/** 합체 중에는 쿵덕몬 한 마리가 방에 있다. */
+@Composable
+private fun FusedCat(leftMs: Long) {
+    val sprite = rememberSprite(Form.FUSION.largeAsset)
+    val bob by rememberInfiniteTransition(label = "fusion").animateFloat(
+        0f, 10f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "bob",
+    )
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Image(
+            sprite,
+            Form.FUSION.monName,
+            Modifier.fillMaxWidth(0.7f).aspectRatio(1f).graphicsLayer { translationY = -bob },
+        )
+        Text(
+            "${Form.FUSION.monName}  (${formatDuration(leftMs)} 남음)",
+            Modifier.padding(top = 4.dp).background(Choco, RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 3.dp),
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
         )
     }
 }

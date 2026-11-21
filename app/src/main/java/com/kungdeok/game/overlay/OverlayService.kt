@@ -50,13 +50,32 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
     private var screenWidth = 0
     private val steps by lazy { StepTracker(this, lifecycleScope) }
 
+    /** 합체 중(SPEC 6-3)에는 쿵덕몬 한 마리만 돌아다닌다. */
+    private var fusionView: CatOverlay? = null
+    private var fused = false
+    private val allViews: List<CatOverlay> get() = cats.values + listOfNotNull(fusionView)
+    private val activeViews: List<CatOverlay> get() = if (fused) listOfNotNull(fusionView) else cats.values.toList()
+
+    /** 쿵덕몬을 톡 하면 두 마리 모두 쓰다듬기 */
+    private val fusionCallbacks = object : CatOverlayCallbacks {
+        override fun onTap(cat: CatId) {
+            lifecycleScope.launch {
+                val outcome = repo.care(CatId.entries, CareAction.PET)
+                if (outcome.results.values.any { it is CareResult.Done }) fusionView?.showHeart()
+            }
+        }
+
+        override fun onLongPress(cat: CatId) = this@OverlayService.onLongPress(cat)
+    }
+
     private val frameCallback = object : Choreographer.FrameCallback {
         override fun doFrame(frameTimeNanos: Long) {
             if (!running) return
             val dt = if (lastFrameNanos == 0L) 0f else ((frameTimeNanos - lastFrameNanos) / 1e9f).coerceAtMost(0.1f)
             lastFrameNanos = frameTimeNanos
-            director?.step(dt)
-            cats.values.forEach { it.step(dt) }
+            checkFusion()
+            if (!fused) director?.step(dt)
+            activeViews.forEach { it.step(dt) }
             Choreographer.getInstance().postFrameCallback(this)
         }
     }
@@ -72,8 +91,8 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
 
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         when (key) {
-            OverlaySettings.KEY_SIZE -> cats.values.forEach { it.setSizeScale(settings.size.scale) }
-            OverlaySettings.KEY_OPACITY -> cats.values.forEach { it.setOpacity(settings.opacity) }
+            OverlaySettings.KEY_SIZE -> allViews.forEach { it.setSizeScale(settings.size.scale) }
+            OverlaySettings.KEY_OPACITY -> allViews.forEach { it.setOpacity(settings.opacity) }
         }
     }
 
@@ -93,6 +112,10 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
                 setSizeScale(settings.size.scale)
                 setOpacity(settings.opacity)
             }
+        }
+        fusionView = CatOverlay(this, wm, CatId.KUNG, fusionCallbacks, fusion = true).apply {
+            setSizeScale(settings.size.scale)
+            setOpacity(settings.opacity)
         }
         steps.start()
         director = RelationshipDirector(cats.getValue(CatId.KUNG), cats.getValue(CatId.NODEOK)) { screenWidth }
@@ -115,8 +138,10 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
                 director?.friendship = s.game.friendship
                 val now = System.currentTimeMillis()
                 cats.forEach { (id, view) -> view.update(s.cat(id), now) }
+                fusionView?.update(s.kung, now)
                 if (!screenReady) {
                     screenReady = true
+                    fused = s.game.isFused(now)
                     applyScreen(firstTime = true)
                     if (!settings.hidden) showCats()
                     if (isScreenOn()) resume()
@@ -160,7 +185,7 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
     private fun applyScreen(firstTime: Boolean) {
         val (w, bottom) = screenSize()
         screenWidth = w
-        cats.values.forEach { it.setScreen(w, bottom, firstTime) }
+        allViews.forEach { it.setScreen(w, bottom, firstTime) }
     }
 
     /** (화면 폭, 고양이가 서는 바닥 y). 내비게이션 바 바로 위를 바닥으로 삼는다. */
@@ -184,11 +209,31 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
 
     private fun showCats() {
         if (!screenReady) return
-        cats.values.forEach { runCatching { it.attach() } }
+        activeViews.forEach { runCatching { it.attach() } }
     }
 
     private fun hideCats() {
-        cats.values.forEach { runCatching { it.detach() } }
+        allViews.forEach { runCatching { it.detach() } }
+    }
+
+    /** 합체가 시작되거나 30분이 끝나면 화면 위 모습을 바꾼다. */
+    private fun checkFusion() {
+        val want = lastState?.game?.isFused(System.currentTimeMillis()) == true
+        if (want == fused) return
+        val f = fusionView ?: return
+        val kung = cats.getValue(CatId.KUNG)
+        val nodeok = cats.getValue(CatId.NODEOK)
+        fused = want
+        if (fused) {
+            f.moveCenterTo((kung.centerX + nodeok.centerX) / 2f)
+        } else {
+            kung.moveCenterTo(f.centerX - kung.widthPx * 0.6f)
+            nodeok.moveCenterTo(f.centerX + nodeok.widthPx * 0.6f)
+        }
+        if (!settings.hidden && screenReady) {
+            hideCats()
+            showCats()
+        }
     }
 
     private fun isScreenOn(): Boolean = (getSystemService(POWER_SERVICE) as PowerManager).isInteractive

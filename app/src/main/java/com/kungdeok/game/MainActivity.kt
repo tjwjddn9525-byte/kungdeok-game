@@ -15,6 +15,8 @@ import com.kungdeok.game.ui.EvolutionScreen
 import com.kungdeok.game.ui.GiftDialog
 import com.kungdeok.game.ui.DexScreen
 import com.kungdeok.game.logic.DailyRules
+import com.kungdeok.game.logic.FusionRules
+import com.kungdeok.game.ui.FusionScreen
 import com.kungdeok.game.ui.SettingsScreen
 import com.kungdeok.game.overlay.OverlayService
 import com.kungdeok.game.overlay.OverlaySettings
@@ -106,6 +108,7 @@ private fun App(vm: MainViewModel) {
     var target by rememberSaveable { mutableStateOf(Target.BOTH) }
     val snackbar = remember { SnackbarHostState() }
     val evolution by vm.evolution.collectAsStateWithLifecycle()
+    val fusion by vm.fusion.collectAsStateWithLifecycle()
     // 권한 화면에서 돌아올 때마다 다시 확인한다.
     val context = LocalContext.current
     val lifecycle by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
@@ -140,8 +143,19 @@ private fun App(vm: MainViewModel) {
                 CircularProgressIndicator(Modifier.align(Alignment.Center))
             } else {
                 when (tab) {
-                    Tab.ROOM -> RoomScreen(s, now, target, { target = it }, { vm.care(target.cats, it) }) {
-                        EvolveButtons(s) { vm.evolve(it) }
+                    Tab.ROOM -> {
+                        // 합체 중에는 돌봄이 두 마리 모두에게 간다.
+                        val t = if (s.game.isFused(now)) Target.BOTH else target
+                        RoomScreen(s, now, t, { target = it }, { vm.care(t.cats, it) }) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                EvolveButtons(s) { vm.evolve(it) }
+                                if (FusionRules.block(s, now, vm.today()) == null) {
+                                    Button(onClick = vm::fuse, modifier = Modifier.padding(4.dp)) {
+                                        Text("💫 합체! (하루 한 번, 30분)")
+                                    }
+                                }
+                            }
+                        }
                     }
                     Tab.STATUS -> StatusScreen(s, now)
                     Tab.DEX -> DexScreen(s)
@@ -154,11 +168,12 @@ private fun App(vm: MainViewModel) {
     // 하루 한 번 앱을 열면 선물 상자 (SPEC 5-2)
     val gift by vm.gift.collectAsStateWithLifecycle()
     val s = state
-    if (gift != null || (s != null && evolution == null && DailyRules.giftAvailable(s.game, vm.today()))) {
+    if (gift != null || (s != null && evolution == null && fusion == null && DailyRules.giftAvailable(s.game, vm.today()))) {
         GiftDialog(gift, vm::openGift, vm::closeGift)
     }
 
     evolution?.let { EvolutionScreen(it, vm::evolutionShown) }
+    fusion?.let { FusionScreen(it, vm::fusionShown) }
 }
 
 @Composable
