@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -12,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,7 +21,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -33,6 +34,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -71,8 +75,9 @@ fun RoomScreen(
             Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .background(Brush.verticalGradient(0f to Wall, 0.62f to Wall, 0.62f to Floor, 1f to Floor)),
+                .background(Brush.verticalGradient(0f to Wall, 0.42f to Wall, 0.42f to Floor, 1f to Floor)),
         ) {
+            RoomDecor()
             Row(
                 Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 16.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
@@ -92,6 +97,25 @@ fun RoomScreen(
             Box(Modifier.align(Alignment.TopCenter).padding(top = 8.dp)) { extra() }
         }
         CarePanel(state, now, target, onTarget, onCare)
+    }
+}
+
+/** 벽의 창문과 바닥 러그 */
+@Composable
+private fun RoomDecor() {
+    Canvas(Modifier.fillMaxSize()) {
+        val w = size.width
+        val h = size.height
+        val winW = w * 0.34f
+        val winH = h * 0.24f
+        val winX = w * 0.5f - winW / 2
+        val winY = h * 0.07f
+        drawRoundRect(Color(0xFF9C7A5B), Offset(winX - 8, winY - 8), Size(winW + 16, winH + 16), CornerRadius(10f))
+        drawRoundRect(Color(0xFFBFE3F5), Offset(winX, winY), Size(winW, winH), CornerRadius(6f))
+        drawLine(Color(0xFF9C7A5B), Offset(winX + winW / 2, winY), Offset(winX + winW / 2, winY + winH), 6f)
+        drawLine(Color(0xFF9C7A5B), Offset(winX, winY + winH / 2), Offset(winX + winW, winY + winH / 2), 6f)
+        drawOval(Color(0x33C0583A), Offset(w * 0.08f, h * 0.70f), Size(w * 0.84f, h * 0.24f))
+        drawOval(Color(0x22FFFFFF), Offset(w * 0.18f, h * 0.74f), Size(w * 0.64f, h * 0.16f))
     }
 }
 
@@ -140,7 +164,8 @@ private fun RoomCat(
         animationSpec = infiniteRepeatable(tween(if (asleep) 1600 else 600), RepeatMode.Reverse),
         label = "bob",
     )
-    val size = (Stage.of(cat.stage).overlayDp * 2.4f).dp
+    // 진화할수록 방 안에서도 덩치가 커진다 (유년기 60% → 궁극체 100% 폭).
+    val widthFraction = 0.6f + 0.4f * (Stage.of(cat.stage).overlayDp - 40) / 48f
 
     Column(
         modifier.clickable(remember { MutableInteractionSource() }, indication = null, onClick = onClick),
@@ -164,7 +189,8 @@ private fun RoomCat(
                 bitmap = sprite,
                 contentDescription = form.monName,
                 modifier = Modifier
-                    .size(size)
+                    .fillMaxWidth(widthFraction.coerceAtMost(1f))
+                    .aspectRatio(1f)
                     .graphicsLayer {
                         translationY = -bob
                         // 기분이 바닥이면 등을 돌리고 앉는다: 좌우 반전 + 살짝 작게

@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    id("app.cash.paparazzi") version "1.3.5"
 }
 
 // CI(GitHub Actions)에서는 실행 번호를 버전 코드로 써서 폰에서 항상 덮어쓰기 설치가 되게 한다.
