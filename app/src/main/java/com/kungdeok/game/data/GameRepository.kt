@@ -1,5 +1,8 @@
 package com.kungdeok.game.data
 
+import com.kungdeok.game.logic.CareAction
+import com.kungdeok.game.logic.CareResult
+import com.kungdeok.game.logic.CareRules
 import com.kungdeok.game.logic.DAY
 import com.kungdeok.game.logic.HOUR
 import com.kungdeok.game.logic.StatusRules
@@ -16,6 +19,8 @@ data class GameState(
     val game: GameEntity,
 ) {
     fun cat(id: CatId): CatEntity = if (id == CatId.KUNG) kung else nodeok
+    fun withCat(id: CatId, cat: CatEntity): GameState =
+        if (id == CatId.KUNG) copy(kung = cat) else copy(nodeok = cat)
 }
 
 /**
@@ -70,6 +75,25 @@ class GameRepository(
         }
         game = game.copy(lastTickAt = now)
         return GameState(kung, nodeok, game)
+    }
+
+    /**
+     * [targets] 에게 [action] 을 한다. 둘 다에게 같은 행동을 성공하면 사이좋음 +1 (SPEC 5).
+     */
+    suspend fun care(targets: List<CatId>, action: CareAction): Map<CatId, CareResult> = mutex.withLock {
+        var s = loadAndAdvance()
+        val now = clock()
+        val results = linkedMapOf<CatId, CareResult>()
+        for (id in targets) {
+            val (cat, result) = CareRules.apply(s.cat(id), action, now)
+            s = s.withCat(id, cat)
+            results[id] = result
+        }
+        if (targets.size == 2 && results.values.all { it is CareResult.Done }) {
+            s = s.copy(game = s.game.copy(friendship = (s.game.friendship + 1).coerceAtMost(100)))
+        }
+        save(s)
+        results
     }
 
     internal suspend fun save(s: GameState) {

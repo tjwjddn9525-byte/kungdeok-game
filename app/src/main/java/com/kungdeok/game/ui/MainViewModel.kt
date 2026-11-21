@@ -1,0 +1,74 @@
+package com.kungdeok.game.ui
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.kungdeok.game.KungdeokApp
+import com.kungdeok.game.data.GameState
+import com.kungdeok.game.logic.CareAction
+import com.kungdeok.game.logic.CareResult
+import com.kungdeok.game.model.CatId
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+class MainViewModel(app: Application) : AndroidViewModel(app) {
+    private val repo = (app as KungdeokApp).repository
+
+    val state: StateFlow<GameState?> =
+        repo.state.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** 쿨다운 표시용 1초 시계 */
+    val now: StateFlow<Long> = flow {
+        while (true) {
+            emit(System.currentTimeMillis())
+            delay(1_000)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), System.currentTimeMillis())
+
+    private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 8)
+    val messages: SharedFlow<String> = _messages
+
+    init {
+        // 화면이 떠 있는 동안 30초마다 시간 경과를 반영해 저장한다.
+        viewModelScope.launch {
+            while (true) {
+                repo.tick()
+                delay(30_000)
+            }
+        }
+    }
+
+    fun care(targets: List<CatId>, action: CareAction) {
+        viewModelScope.launch {
+            val results = repo.care(targets, action)
+            val text = results.entries.joinToString("\n") { (id, r) -> describe(id, action, r) }
+            _messages.emit(text)
+        }
+    }
+
+    private fun describe(id: CatId, action: CareAction, r: CareResult): String = when (r) {
+        is CareResult.Done -> buildString {
+            append("${id.catName}: ${action.label}!")
+            if (r.exp > 0) append(" (경험치 +${formatExp(r.exp)})")
+        }
+        is CareResult.Cooldown -> "${id.catName}: ${formatDuration(r.remainingMs)} 뒤에 할 수 있어요"
+        CareResult.Asleep -> "${id.catName}은 자는 중이에요"
+    }
+}
+
+fun formatExp(v: Double): String = if (v % 1.0 == 0.0) v.toInt().toString() else "%.1f".format(v)
+
+fun formatDuration(ms: Long): String {
+    val s = (ms + 999) / 1000
+    return when {
+        s >= 3600 -> "${s / 3600}시간 ${(s % 3600) / 60}분"
+        s >= 60 -> "${s / 60}분"
+        else -> "${s}초"
+    }
+}
