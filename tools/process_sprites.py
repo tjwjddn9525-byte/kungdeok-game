@@ -6,11 +6,20 @@
 3. sprites/large/ : 긴 변 512px (도감·진화 연출용)
    sprites/small/ : 단계별 오버레이 크기(dp) x SMALL_SCALE px, nearest-neighbor 축소
 
+4. 오버레이 애니메이션 프레임 (SPEC 8, 2단계): sprites/small/<이름>_walk1.png, _walk2.png, _sleep.png
+   - raw/<이름>_walk1.png 처럼 직접 그린 프레임이 있으면 그것을 쓴다.
+   - 없으면 원본 그림에서 만든다: 걷기 = 다리 쪽(아래 30%)을 좌우로 번갈아 기울임,
+     잠자기 = 납작하게 웅크린 자세(세로 82%, 가로 106%)에 살짝 어둡게.
+
 사용법: python3 tools/process_sprites.py   (저장소 루트에서 실행, Pillow 필요)
 """
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageEnhance
+
+FRAMES = ("walk1", "walk2", "sleep")
+LEG_SPLIT = 0.70   # 이 높이 아래를 다리로 본다
+LEG_SHEAR = 0.16   # 다리 기울기
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "raw"
@@ -60,15 +69,58 @@ def fit(img: Image.Image, long_side: int, resample) -> Image.Image:
     return img.resize((max(1, round(w * s)), max(1, round(h * s))), resample)
 
 
+def walk_frame(img: Image.Image, direction: int) -> Image.Image:
+    """다리 쪽을 [direction] 방향으로 기울인다. (통통 튀는 움직임은 앱에서 따로 준다)"""
+    w, h = img.size
+    split = int(h * LEG_SPLIT)
+    out = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    out.alpha_composite(img.crop((0, 0, w, split)), (0, 0))
+    legs = img.crop((0, split, w, h))
+    k = LEG_SHEAR * direction
+    # 출력 (x, y) 는 입력 (x - k*y, y) 를 본다: 윗줄은 그대로, 발끝으로 갈수록 밀림
+    sheared = legs.transform(legs.size, Image.AFFINE, (1, -k, 0, 0, 1, 0), resample=Image.NEAREST)
+    out.alpha_composite(sheared, (0, split))
+    return out
+
+
+def sleep_frame(img: Image.Image) -> Image.Image:
+    w, h = img.size
+    nw, nh = int(w * 1.06), int(h * 0.82)
+    squashed = img.resize((nw, nh), Image.NEAREST)
+    rgb = ImageEnhance.Brightness(squashed.convert("RGB")).enhance(0.88).convert("RGBA")
+    rgb.putalpha(squashed.getchannel("A"))
+    out = Image.new("RGBA", (nw, h), (0, 0, 0, 0))
+    out.alpha_composite(rgb, (0, h - nh))
+    return out
+
+
+def make_frames(name: str, clean: Image.Image, small_px: int):
+    for frame in FRAMES:
+        drawn = RAW / f"{name}_{frame}.png"
+        if drawn.exists():
+            img = trim(remove_background(Image.open(drawn)))
+        elif frame == "sleep":
+            img = sleep_frame(clean)
+        else:
+            img = walk_frame(clean, 1 if frame == "walk1" else -1)
+        # 기본 그림과 같은 비율로 줄여야 프레임이 바뀔 때 크기가 튀지 않는다.
+        scale = small_px / max(clean.size)
+        size = (max(1, round(img.width * scale)), max(1, round(img.height * scale)))
+        img.resize(size, Image.NEAREST).save(OUT_SMALL / f"{name}_{frame}.png", optimize=True)
+
+
 def main():
     OUT_LARGE.mkdir(parents=True, exist_ok=True)
     OUT_SMALL.mkdir(parents=True, exist_ok=True)
     for src in sorted(RAW.glob("*.png")):
         name = src.stem
+        if name.rsplit("_", 1)[-1] in FRAMES:
+            continue  # 직접 그린 프레임은 make_frames 에서 쓴다
         clean = trim(remove_background(Image.open(src)))
         fit(clean, LARGE_SIZE, Image.LANCZOS).save(OUT_LARGE / src.name, optimize=True)
         small_px = STAGE_DP[stage_of(name)] * SMALL_SCALE
         fit(clean, small_px, Image.NEAREST).save(OUT_SMALL / src.name, optimize=True)
+        make_frames(name, clean, small_px)
         print(f"{name}: trimmed {clean.size} -> small {small_px}px")
 
 

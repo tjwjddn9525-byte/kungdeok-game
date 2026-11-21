@@ -50,6 +50,9 @@ enum class Form(
     val largeAsset: String get() = "large/$asset"
     val smallAsset: String get() = "small/$asset"
 
+    /** 오버레이 애니메이션 프레임: walk1, walk2, sleep */
+    fun frameAsset(frame: String): String = "small/" + asset.removeSuffix(".png") + "_$frame.png"
+
     companion object {
         fun of(cat: CatId, stage: Int): Form =
             entries.first { it.owner == cat && it.stage.level == stage }

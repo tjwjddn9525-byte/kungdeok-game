@@ -18,6 +18,10 @@ object Sprites {
         cache.getOrPut(path) {
             context.assets.open(path).use { BitmapFactory.decodeStream(it) }
         }
+
+    /** 없는 파일이면 null (애니메이션 프레임처럼 선택적인 그림용) */
+    fun bitmapOrNull(context: Context, path: String): Bitmap? =
+        runCatching { bitmap(context, path) }.getOrNull()
 }
 
 @Composable

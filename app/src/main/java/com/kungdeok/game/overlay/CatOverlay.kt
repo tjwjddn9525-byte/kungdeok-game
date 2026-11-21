@@ -69,6 +69,9 @@ class CatOverlay(
     // ---- 게임 상태 ----
     private var stage = 1
     private var sprite: Bitmap? = null
+    /** 걷기 2프레임, 잠자기 1프레임 (없으면 기본 그림) */
+    private var walkFrames: List<Bitmap> = emptyList()
+    private var sleepFrame: Bitmap? = null
     private var bubble: String? = null
     private var asleep = false
     private var sulking = false
@@ -139,7 +142,8 @@ class CatOverlay(
 
     private val spriteSizePx: Float get() = dp(Stage.of(stage).overlayDp * sizeScale)
     private val bubbleSpace: Float get() = dp(30f)
-    private val viewW: Int get() = maxOf(spriteSizePx, dp(84f)).toInt()
+    // 잠자기 프레임은 6% 넓고 걷기 프레임은 다리가 삐져나오므로 여유를 둔다.
+    private val viewW: Int get() = maxOf(spriteSizePx * 1.12f, dp(84f)).toInt()
     private val viewH: Int get() = (spriteSizePx + bubbleSpace + dp(8f)).toInt()
 
     fun attach() {
@@ -197,6 +201,11 @@ class CatOverlay(
             stage = newStage
             val form = if (fusion) Form.FUSION else Form.of(cat, stage)
             sprite = Sprites.bitmap(context, form.smallAsset)
+            walkFrames = listOfNotNull(
+                Sprites.bitmapOrNull(context, form.frameAsset("walk1")),
+                Sprites.bitmapOrNull(context, form.frameAsset("walk2")),
+            )
+            sleepFrame = Sprites.bitmapOrNull(context, form.frameAsset("sleep"))
             groundY = oldBottom - viewH
             relayout()
         }
@@ -372,11 +381,18 @@ class CatOverlay(
     }
 
     override fun onDraw(canvas: Canvas) {
-        val bmp = sprite ?: return
+        val base = sprite ?: return
         val size = spriteSizePx
+        // 크기는 항상 기본 그림 기준으로 맞춰서 프레임이 바뀌어도 덩치가 튀지 않게 한다.
+        val s = size / maxOf(base.width, base.height).toFloat()
+        val bmp = when {
+            dragging || falling -> base
+            behavior == Behavior.WALK && walkFrames.size == 2 -> walkFrames[(time * 6f).toInt() % 2]
+            behavior == Behavior.NAP -> sleepFrame ?: base
+            else -> base
+        }
         val w = bmp.width.toFloat()
         val h = bmp.height.toFloat()
-        val s = size / maxOf(w, h)
         val dw = w * s
         val dh = h * s
         val cx = width / 2f
