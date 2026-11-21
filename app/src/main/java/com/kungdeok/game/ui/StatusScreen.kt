@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kungdeok.game.data.CatEntity
 import com.kungdeok.game.data.GameState
+import com.kungdeok.game.logic.EvolutionRules
 import com.kungdeok.game.logic.ExpRules
 import com.kungdeok.game.model.CatId
 import com.kungdeok.game.model.Form
@@ -63,6 +64,17 @@ private fun CatCard(id: CatId, cat: CatEntity, now: Long) {
             Bar("기분", cat.mood.toFloat() / 100f, HeartPink)
             Bar("청결", cat.cleanliness.toFloat() / 100f, Color(0xFF4BA3C7))
             Bar("졸림", cat.sleepiness.toFloat() / 100f, Color(0xFF6C7FB8))
+            Spacer(Modifier.height(8.dp))
+            val req = EvolutionRules.requirement(cat.stage)
+            Text(
+                when {
+                    cat.evolutionReady -> "✨ 진화할 수 있어요! 방 화면에서 진화하기를 눌러 주세요."
+                    req != null -> "다음 진화 조건: ${req.describe()}"
+                    else -> "최종 단계예요."
+                },
+                fontSize = 13.sp,
+                color = Color(0xFF7C5CC4),
+            )
         }
     }
 }

@@ -4,6 +4,8 @@ import com.kungdeok.game.logic.CareAction
 import com.kungdeok.game.logic.CareResult
 import com.kungdeok.game.logic.CareRules
 import com.kungdeok.game.logic.DAY
+import com.kungdeok.game.logic.EvolutionRules
+import com.kungdeok.game.logic.ExpRules
 import com.kungdeok.game.logic.HOUR
 import com.kungdeok.game.logic.StatusRules
 import com.kungdeok.game.model.CatId
@@ -31,6 +33,9 @@ class GameRepository(
     private val dao: GameDao,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
+    /** 진화 조건을 새로 채웠을 때 불린다 (알림 띄우기용). */
+    var onEvolutionReady: (CatId, CatEntity) -> Unit = { _, _ -> }
+
     private val mutex = Mutex()
 
     val state: Flow<GameState> = combine(dao.observeCats(), dao.observeGame().filterNotNull()) { cats, game ->
@@ -41,7 +46,11 @@ class GameRepository(
     }.filterNotNull()
 
     /** 처음 실행이면 기본 데이터를 만들고, 꺼 둔 동안의 시간을 반영한다. */
-    suspend fun tick(): GameState = mutex.withLock { loadAndAdvance().also { save(it) } }
+    suspend fun tick(): GameState = mutex.withLock {
+        val s = checkEvolution(loadAndAdvance())
+        save(s)
+        s
+    }
 
     /** mutex 안에서 호출. 현재 시각까지 시간 경과를 반영한 상태를 돌려준다 (저장은 안 함). */
     internal suspend fun loadAndAdvance(): GameState {
@@ -85,15 +94,51 @@ class GameRepository(
         val now = clock()
         val results = linkedMapOf<CatId, CareResult>()
         for (id in targets) {
-            val (cat, result) = CareRules.apply(s.cat(id), action, now)
+            var (cat, result) = CareRules.apply(s.cat(id), action, now)
+            if (result is CareResult.Done) {
+                val exp = ExpRules.gain(s.cat(id), action)
+                cat = ExpRules.addExp(cat, exp)
+                result = CareResult.Done(exp)
+            }
             s = s.withCat(id, cat)
             results[id] = result
         }
         if (targets.size == 2 && results.values.all { it is CareResult.Done }) {
             s = s.copy(game = s.game.copy(friendship = (s.game.friendship + 1).coerceAtMost(100)))
         }
+        s = checkEvolution(s)
         save(s)
         results
+    }
+
+    /** 진화 조건을 확인해 evolutionReady 를 갱신하고, 새로 채웠으면 한 번만 알린다. */
+    private suspend fun checkEvolution(state: GameState): GameState {
+        var s = state
+        for (id in CatId.entries) {
+            val cat = s.cat(id)
+            val ready = EvolutionRules.canEvolve(cat, s.game.friendship) { days -> averageCondition(cat, days) }
+            var next = cat.copy(evolutionReady = ready)
+            if (ready && !cat.evolutionNotified) {
+                onEvolutionReady(id, next)
+                next = next.copy(evolutionNotified = true)
+            }
+            s = s.withCat(id, next)
+        }
+        return s
+    }
+
+    /** 진화 버튼. 조건을 채운 상태면 한 단계 올리고 (이전 단계, 새 단계)를 돌려준다. */
+    suspend fun evolve(id: CatId): Pair<Int, Int>? = mutex.withLock {
+        var s = checkEvolution(loadAndAdvance())
+        val cat = s.cat(id)
+        if (!cat.evolutionReady || cat.stage >= EvolutionRules.MAX_STAGE) {
+            save(s)
+            return@withLock null
+        }
+        val evolved = cat.copy(stage = cat.stage + 1, evolutionReady = false, evolutionNotified = false)
+        s = checkEvolution(s.withCat(id, evolved))
+        save(s)
+        cat.stage to evolved.stage
     }
 
     internal suspend fun save(s: GameState) {

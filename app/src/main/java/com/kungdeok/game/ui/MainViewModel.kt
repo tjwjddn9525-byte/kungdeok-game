@@ -10,6 +10,7 @@ import com.kungdeok.game.logic.CareResult
 import com.kungdeok.game.model.CatId
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -42,6 +43,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 delay(30_000)
             }
         }
+    }
+
+    private val _evolution = MutableStateFlow<EvolutionEvent?>(null)
+    val evolution: StateFlow<EvolutionEvent?> = _evolution
+
+    fun evolve(id: CatId) {
+        viewModelScope.launch {
+            val (from, to) = repo.evolve(id) ?: return@launch
+            _evolution.value = EvolutionEvent(id, from, to)
+        }
+    }
+
+    fun evolutionShown() {
+        _evolution.value = null
     }
 
     fun care(targets: List<CatId>, action: CareAction) {

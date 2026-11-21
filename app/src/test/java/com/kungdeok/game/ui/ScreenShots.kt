@@ -30,4 +30,8 @@ class ScreenShots {
     @Test fun status() = paparazzi.snapshot {
         KungdeokTheme { StatusScreen(state, 1000L) }
     }
+
+    @Test fun evolution() = paparazzi.snapshot {
+        KungdeokTheme { EvolutionScreen(EvolutionEvent(com.kungdeok.game.model.CatId.NODEOK, 1, 2)) {} }
+    }
 }

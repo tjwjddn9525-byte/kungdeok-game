@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "e634c7c0a7eb22cfb63c4637cd2882e5",
+    "identityHash": "383464a7d98e18aab6f38658433de8e2",
     "entities": [
       {
         "tableName": "cats",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `stage` INTEGER NOT NULL, `level` INTEGER NOT NULL, `exp` REAL NOT NULL, `hunger` REAL NOT NULL, `mood` REAL NOT NULL, `cleanliness` REAL NOT NULL, `sleepiness` REAL NOT NULL, `lastPetAt` INTEGER NOT NULL, `lastFeedAt` INTEGER NOT NULL, `lastSnackAt` INTEGER NOT NULL, `lastPlayAt` INTEGER NOT NULL, `lastBrushAt` INTEGER NOT NULL, `sleepUntil` INTEGER NOT NULL, `evolutionNotified` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `stage` INTEGER NOT NULL, `level` INTEGER NOT NULL, `exp` REAL NOT NULL, `hunger` REAL NOT NULL, `mood` REAL NOT NULL, `cleanliness` REAL NOT NULL, `sleepiness` REAL NOT NULL, `lastPetAt` INTEGER NOT NULL, `lastFeedAt` INTEGER NOT NULL, `lastSnackAt` INTEGER NOT NULL, `lastPlayAt` INTEGER NOT NULL, `lastBrushAt` INTEGER NOT NULL, `sleepUntil` INTEGER NOT NULL, `evolutionReady` INTEGER NOT NULL, `evolutionNotified` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -89,6 +89,12 @@
           {
             "fieldPath": "sleepUntil",
             "columnName": "sleepUntil",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "evolutionReady",
+            "columnName": "evolutionReady",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -229,7 +235,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e634c7c0a7eb22cfb63c4637cd2882e5')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '383464a7d98e18aab6f38658433de8e2')"
     ]
   }
 }

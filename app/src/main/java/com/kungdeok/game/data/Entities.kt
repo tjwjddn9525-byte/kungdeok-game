@@ -23,6 +23,8 @@ data class CatEntity(
     val lastBrushAt: Long = 0,
     /** 이 시각까지 잠든 상태 (재우기, 또는 졸림이 바닥나서 잠듦). */
     val sleepUntil: Long = 0,
+    /** 진화 조건을 채워서 진화 버튼을 누를 수 있는 상태. */
+    val evolutionReady: Boolean = false,
     /** "진화할 수 있어요" 알림을 이미 보냈는지. 진화하면 다시 false. */
     val evolutionNotified: Boolean = false,
 ) {

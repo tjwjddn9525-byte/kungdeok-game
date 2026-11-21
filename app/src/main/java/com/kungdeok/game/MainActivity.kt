@@ -1,6 +1,16 @@
 package com.kungdeok.game
 
+import android.Manifest
+import android.os.Build
 import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Button
+import androidx.compose.ui.unit.dp
+import com.kungdeok.game.data.GameState
+import com.kungdeok.game.model.CatId
+import com.kungdeok.game.model.Form
+import com.kungdeok.game.ui.EvolutionScreen
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -43,7 +53,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent { KungdeokTheme { App(vm) } }
+        if (Build.VERSION.SDK_INT >= 33 && !Notifications.canPost(this)) {
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+                .launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
     }
+
 }
 
 @Composable
@@ -53,6 +68,7 @@ private fun App(vm: MainViewModel) {
     var tab by rememberSaveable { mutableStateOf(Tab.ROOM) }
     var target by rememberSaveable { mutableStateOf(Target.BOTH) }
     val snackbar = remember { SnackbarHostState() }
+    val evolution by vm.evolution.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         vm.messages.collect {
@@ -82,9 +98,26 @@ private fun App(vm: MainViewModel) {
                 CircularProgressIndicator(Modifier.align(Alignment.Center))
             } else {
                 when (tab) {
-                    Tab.ROOM -> RoomScreen(s, now, target, { target = it }, { vm.care(target.cats, it) })
+                    Tab.ROOM -> RoomScreen(s, now, target, { target = it }, { vm.care(target.cats, it) }) {
+                        EvolveButtons(s) { vm.evolve(it) }
+                    }
                     Tab.STATUS -> StatusScreen(s, now)
                 }
+            }
+        }
+    }
+
+    evolution?.let { EvolutionScreen(it, vm::evolutionShown) }
+}
+
+@Composable
+private fun EvolveButtons(state: GameState, onEvolve: (CatId) -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        for (id in CatId.entries) {
+            val cat = state.cat(id)
+            if (!cat.evolutionReady) continue
+            Button(onClick = { onEvolve(id) }, modifier = Modifier.padding(4.dp)) {
+                Text("✨ ${Form.of(id, cat.stage).monName}이 진화할 수 있어요! 진화하기")
             }
         }
     }
