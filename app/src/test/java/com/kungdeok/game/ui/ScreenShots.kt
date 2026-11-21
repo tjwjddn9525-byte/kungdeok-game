@@ -61,4 +61,31 @@ class ScreenShots {
         }
         paparazzi.snapshot(row)
     }
+
+    @Test fun overlayRelationshipScripts() {
+        val ctx = paparazzi.context
+        val wm = ctx.getSystemService(android.content.Context.WINDOW_SERVICE) as android.view.WindowManager
+        val cb = object : com.kungdeok.game.overlay.CatOverlayCallbacks {
+            override fun onTap(cat: com.kungdeok.game.model.CatId) {}
+            override fun onLongPress(cat: com.kungdeok.game.model.CatId) {}
+        }
+        val d = ctx.resources.displayMetrics.density
+        val row = android.widget.LinearLayout(ctx).apply {
+            setBackgroundColor(android.graphics.Color.parseColor("#3A4A66"))
+            gravity = android.view.Gravity.BOTTOM
+        }
+        val effects = listOf(com.kungdeok.game.overlay.Effect.HEARTS, com.kungdeok.game.overlay.Effect.DUST)
+        for ((i, e) in effects.withIndex()) {
+            val id = if (i == 0) com.kungdeok.game.model.CatId.KUNG else com.kungdeok.game.model.CatId.NODEOK
+            val v = com.kungdeok.game.overlay.CatOverlay(ctx, wm, id, cb)
+            v.update(CatEntity(id.id, stage = 2), 1000L)
+            v.setScreen(1080, 2000, true)
+            val target = 100f
+            v.play(com.kungdeok.game.overlay.Script(target, com.kungdeok.game.overlay.Behavior.SIT, 20f, true, e))
+            repeat(420) { v.step(1f / 60f) } // 7초: 걸어가서 도착, 아직 자리 유지 중
+            org.junit.Assert.assertEquals(target, v.windowXFor(v.centerX), 1f)
+            row.addView(v, android.widget.LinearLayout.LayoutParams((140 * d).toInt(), (140 * d).toInt()))
+        }
+        paparazzi.snapshot(row)
+    }
 }

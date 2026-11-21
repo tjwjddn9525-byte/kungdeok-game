@@ -45,12 +45,15 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
     private var running = false
     private var lastFrameNanos = 0L
     private var tickJob: Job? = null
+    private var director: RelationshipDirector? = null
+    private var screenWidth = 0
 
     private val frameCallback = object : Choreographer.FrameCallback {
         override fun doFrame(frameTimeNanos: Long) {
             if (!running) return
             val dt = if (lastFrameNanos == 0L) 0f else ((frameTimeNanos - lastFrameNanos) / 1e9f).coerceAtMost(0.1f)
             lastFrameNanos = frameTimeNanos
+            director?.step(dt)
             cats.values.forEach { it.step(dt) }
             Choreographer.getInstance().postFrameCallback(this)
         }
@@ -89,6 +92,7 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
                 setOpacity(settings.opacity)
             }
         }
+        director = RelationshipDirector(cats.getValue(CatId.KUNG), cats.getValue(CatId.NODEOK)) { screenWidth }
         settings.prefs.registerOnSharedPreferenceChangeListener(prefsListener)
         ContextCompat.registerReceiver(
             this,
@@ -105,6 +109,7 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
         lifecycleScope.launch {
             repo.state.collect { s ->
                 lastState = s
+                director?.friendship = s.game.friendship
                 val now = System.currentTimeMillis()
                 cats.forEach { (id, view) -> view.update(s.cat(id), now) }
                 if (!screenReady) {
@@ -150,6 +155,7 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
 
     private fun applyScreen(firstTime: Boolean) {
         val (w, bottom) = screenSize()
+        screenWidth = w
         cats.values.forEach { it.setScreen(w, bottom, firstTime) }
     }
 
@@ -208,7 +214,9 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
 
     override fun onTap(cat: CatId) {
         lifecycleScope.launch {
-            val result = repo.care(listOf(cat), CareAction.PET)[cat]
+            val outcome = repo.care(listOf(cat), CareAction.PET)
+            outcome.jealous?.let { cats[it]?.showTempBubble("흥") }
+            val result = outcome.results[cat]
             val view = cats[cat] ?: return@launch
             when (result) {
                 is CareResult.Done -> view.showHeart()

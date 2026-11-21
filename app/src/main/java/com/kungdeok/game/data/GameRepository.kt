@@ -6,6 +6,7 @@ import com.kungdeok.game.logic.CareRules
 import com.kungdeok.game.logic.DAY
 import com.kungdeok.game.logic.DailyRules
 import com.kungdeok.game.logic.Gift
+import com.kungdeok.game.logic.RelationshipRules
 import com.kungdeok.game.logic.epochDay
 import com.kungdeok.game.logic.EvolutionRules
 import com.kungdeok.game.logic.ExpRules
@@ -17,6 +18,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+
+/** 돌봄 결과. [jealous] 는 질투해서 "흥" 한 고양이. */
+data class CareOutcome(
+    val results: Map<CatId, CareResult>,
+    val jealous: CatId? = null,
+)
 
 data class GameState(
     val kung: CatEntity,
@@ -85,23 +92,33 @@ class GameRepository(
             dao.insertSamples(samples)
             dao.pruneSamples(now - 8 * DAY)
         }
-        game = game.copy(lastTickAt = now)
+        game = RelationshipRules.decay(game.copy(lastTickAt = now), epochDay(now))
         return GameState(kung, nodeok, game)
     }
 
     /**
      * [targets] 에게 [action] 을 한다. 둘 다에게 같은 행동을 성공하면 사이좋음 +1 (SPEC 5).
      */
-    suspend fun care(targets: List<CatId>, action: CareAction): Map<CatId, CareResult> = mutex.withLock {
+    suspend fun care(targets: List<CatId>, action: CareAction): CareOutcome = mutex.withLock {
         var s = loadAndAdvance()
         val now = clock()
         val results = linkedMapOf<CatId, CareResult>()
+        var jealous: CatId? = null
         for (id in targets) {
             var (cat, result) = CareRules.apply(s.cat(id), action, now)
             if (result is CareResult.Done) {
                 val exp = ExpRules.gain(s.cat(id), action)
                 cat = ExpRules.addExp(cat, exp)
                 result = CareResult.Done(exp)
+                if (action == CareAction.PET && targets.size == 1) {
+                    val (game, who) = RelationshipRules.onPet(s.game, id)
+                    s = s.copy(game = game)
+                    if (who != null) {
+                        jealous = who
+                        val other = s.cat(who)
+                        s = s.withCat(who, other.copy(mood = StatusRules.clamp(other.mood - RelationshipRules.JEALOUS_MOOD)))
+                    }
+                }
             }
             s = s.withCat(id, cat)
             results[id] = result
@@ -111,7 +128,7 @@ class GameRepository(
         }
         s = checkEvolution(s)
         save(s)
-        results
+        CareOutcome(results, jealous)
     }
 
     /** 진화 조건을 확인해 evolutionReady 를 갱신하고, 새로 채웠으면 한 번만 알린다. */

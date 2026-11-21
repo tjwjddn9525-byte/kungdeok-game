@@ -49,6 +49,7 @@ import com.kungdeok.game.data.GameState
 import com.kungdeok.game.logic.CareAction
 import com.kungdeok.game.logic.CareRules
 import com.kungdeok.game.logic.StatusRules
+import com.kungdeok.game.logic.RelationshipRules
 import com.kungdeok.game.model.CatId
 import com.kungdeok.game.model.Form
 import com.kungdeok.game.model.Stage
@@ -130,6 +131,11 @@ private fun TopInfo(state: GameState) {
         Text("사이좋음 ", fontSize = 14.sp)
         Text("❤", color = HeartPink, fontSize = 18.sp)
         Text(" ${state.game.friendship}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Text(
+            " (${RelationshipRules.closeness(state.game.friendship).label})",
+            fontSize = 13.sp,
+            color = Choco,
+        )
     }
 }
 

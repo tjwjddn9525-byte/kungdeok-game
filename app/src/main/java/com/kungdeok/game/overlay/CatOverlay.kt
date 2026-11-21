@@ -29,6 +29,21 @@ import kotlin.random.Random
 /** 화면 위를 돌아다니는 행동 패턴 (SPEC 8): 걷기 → 앉기 → 두리번 → 잠자기 랜덤 반복 */
 enum class Behavior { WALK, SIT, LOOK, NAP }
 
+/** 관계 연출용 특수 효과 */
+enum class Effect { NONE, HEARTS, DUST }
+
+/**
+ * 감독(OverlayService)이 시키는 짧은 연출 한 토막.
+ * [targetX] 로 걸어간 뒤 [hold] 행동을 [seconds] 초 동안, [faceRight] 쪽을 보며 [effect] 와 함께 한다.
+ */
+data class Script(
+    val targetX: Float?,
+    val hold: Behavior,
+    val seconds: Float,
+    val faceRight: Boolean? = null,
+    val effect: Effect = Effect.NONE,
+)
+
 interface CatOverlayCallbacks {
     fun onTap(cat: CatId)
     fun onLongPress(cat: CatId)
@@ -94,6 +109,11 @@ class CatOverlay(
     private var tempBubble: String? = null
     private var tempBubbleTime = 0f
 
+    private val scripts = ArrayDeque<Script>()
+    private var scriptHoldLeft = -1f
+    private var effect = Effect.NONE
+    private var effectTime = 0f
+
     private val spritePaint = Paint().apply { isFilterBitmap = false; isAntiAlias = false }
     private val bubblePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
     private val bubbleStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -106,6 +126,11 @@ class CatOverlay(
         color = Color.WHITE; textSize = dp(12f); typeface = Typeface.DEFAULT_BOLD
         setShadowLayer(dp(1.5f), 0f, 0f, Color.parseColor("#5A3A28"))
     }
+    private val heartPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#E86A8A"); textSize = dp(15f); typeface = Typeface.DEFAULT_BOLD
+        setShadowLayer(dp(1.5f), 0f, 0f, Color.WHITE)
+    }
+    private val dustPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(200, 190, 180, 165) }
     private val effectPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = dp(16f) }
     private val srcRect = Rect()
     private val dstRect = RectF()
@@ -183,6 +208,29 @@ class CatOverlay(
         wm.updateViewLayout(this, params)
     }
 
+    // ---- 감독(OverlayService)용 ----
+    val centerX: Float get() = x + viewW / 2f
+    val widthPx: Int get() = viewW
+    val behaviorNow: Behavior get() = behavior
+    val isAsleep: Boolean get() = asleep
+
+    /** 연출 중이거나 사람이 만지는 중이면 바쁨 */
+    val isBusy: Boolean get() = scripts.isNotEmpty() || dragging || falling
+
+    /** 가운데 x 좌표가 [cx] 가 되는 창 x 위치 (화면 안으로 제한) */
+    fun windowXFor(cx: Float): Float = (cx - viewW / 2f).coerceIn(0f, (screenW - viewW).toFloat().coerceAtLeast(0f))
+
+    fun play(vararg list: Script) {
+        scripts.clear()
+        scripts.addAll(list)
+        scriptHoldLeft = -1f
+    }
+
+    fun cancelScripts() {
+        scripts.clear()
+        effect = Effect.NONE
+    }
+
     fun showHeart() {
         heartTime = 1.2f
     }
@@ -225,6 +273,7 @@ class CatOverlay(
     }
 
     private fun think(dt: Float) {
+        if (scripts.isNotEmpty() && runScript(dt)) return
         if (asleep) {
             behavior = Behavior.NAP
             return
@@ -249,6 +298,41 @@ class CatOverlay(
             }
             Behavior.SIT, Behavior.NAP -> Unit
         }
+    }
+
+    /** 연출을 한 프레임 진행한다. 처리했으면 true. */
+    private fun runScript(dt: Float): Boolean {
+        val sc = scripts.first()
+        val tx = sc.targetX
+        if (scriptHoldLeft < 0f) {
+            // 1) 목표 지점까지 걷기 (잠든 고양이는 그 자리에서)
+            if (tx != null && !asleep && abs(x - tx) > dp(3f)) {
+                behavior = Behavior.WALK
+                val dir = if (tx > x) 1 else -1
+                x += dir * dp(40f) * dt
+                if ((dir > 0 && x > tx) || (dir < 0 && x < tx)) x = tx
+                facingRight = dir > 0
+                return true
+            }
+            if (tx != null && !asleep) x = tx
+            scriptHoldLeft = sc.seconds
+            effect = sc.effect
+        }
+        // 2) 자리에서 행동 유지
+        behavior = if (asleep) Behavior.NAP else sc.hold
+        sc.faceRight?.let { facingRight = it }
+        effectTime += dt
+        scriptHoldLeft -= dt
+        if (scriptHoldLeft <= 0f) {
+            scripts.removeFirst()
+            scriptHoldLeft = -1f
+            effect = Effect.NONE
+            if (scripts.isEmpty()) {
+                behaviorLeft = 2f + Random.nextFloat() * 2f
+                if (behavior == Behavior.WALK) behavior = Behavior.SIT
+            }
+        }
+        return true
     }
 
     private fun pickBehavior() {
@@ -287,6 +371,7 @@ class CatOverlay(
             dragging -> Unit
             behavior == Behavior.WALK && !falling -> hop = abs(sin(time * 9f)) * dp(4f)
             behavior == Behavior.NAP -> squash = 1f - 0.03f * (1 + sin(time * 2.5f))
+            effect == Effect.DUST -> hop = abs(sin(time * 23f)) * dp(5f)
         }
         val dh2 = dh * squash
         dstRect.set(cx - dw / 2, bottom - dh2 - hop, cx + dw / 2, bottom - hop)
@@ -305,6 +390,25 @@ class CatOverlay(
             val zx = cx + dw * 0.25f
             val phase = (time % 2f) / 2f
             canvas.drawText("z", zx, top + dp(4f) - phase * dp(10f), zPaint)
+        }
+        when (effect) {
+            Effect.HEARTS -> {
+                // 그루밍: 작은 하트가 번갈아 떠오른다
+                val phase = (effectTime % 1.4f) / 1.4f
+                heartPaint.alpha = (255 * (1 - phase * 0.7f)).toInt()
+                val side = if (facingRight) 1 else -1
+                canvas.drawText("♥", cx + side * dw * 0.3f, top + dp(12f) - phase * dp(16f), heartPaint)
+            }
+            Effect.DUST -> {
+                // 투닥거림: 발치에 먼지구름이 들썩인다
+                for (i in 0 until 5) {
+                    val a = time * 14f + i * 1.3f
+                    val px = cx + sin(a) * dw * 0.45f
+                    val py = bottom - dp(3f) - abs(sin(a * 1.7f)) * dh * 0.18f
+                    canvas.drawCircle(px, py, dp(4f + (i % 3) * 1.5f), dustPaint)
+                }
+            }
+            Effect.NONE -> Unit
         }
         if (heartTime > 0) {
             val rise = (1.2f - heartTime) * dp(18f)
@@ -359,6 +463,7 @@ class CatOverlay(
                 if (!dragging && !longPressed && (abs(dx) > touchSlop || abs(dy) > touchSlop)) {
                     dragging = true
                     falling = false
+                    cancelScripts()
                     removeCallbacks(longPressRunnable)
                 }
                 if (dragging) {

@@ -76,8 +76,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun care(targets: List<CatId>, action: CareAction) {
         viewModelScope.launch {
-            val results = repo.care(targets, action)
-            val text = results.entries.joinToString("\n") { (id, r) -> describe(id, action, r) }
+            val outcome = repo.care(targets, action)
+            var text = outcome.results.entries.joinToString("\n") { (id, r) -> describe(id, action, r) }
+            outcome.jealous?.let { text += "\n${it.catName}: 흥! (질투해서 기분 -5)" }
             _messages.emit(text)
         }
     }
