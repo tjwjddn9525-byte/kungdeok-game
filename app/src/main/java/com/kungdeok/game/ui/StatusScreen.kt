@@ -28,6 +28,10 @@ import com.kungdeok.game.data.CatEntity
 import com.kungdeok.game.data.GameState
 import com.kungdeok.game.logic.EvolutionRules
 import com.kungdeok.game.logic.StepRules
+import com.kungdeok.game.logic.ShopItem
+import com.kungdeok.game.logic.ShopKind
+import com.kungdeok.game.logic.ShopRules
+import androidx.compose.material3.TextButton
 import com.kungdeok.game.logic.epochDay
 import com.kungdeok.game.StepTracker
 import androidx.compose.runtime.remember
@@ -38,18 +42,33 @@ import com.kungdeok.game.model.Form
 
 /** 상태 화면 (SPEC 9): 레벨, 경험치 바, 4가지 상태 바, 오늘 걸음 수 */
 @Composable
-fun StatusScreen(state: GameState, now: Long) {
+fun StatusScreen(state: GameState, now: Long, onUseBag: (CatId, ShopItem) -> Unit = { _, _ -> }) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         for (id in CatId.entries) CatCard(id, state.cat(id), now)
-        val g = state.game
-        Text(
-            "가방: 🍚 밥 ${g.food} · 🍤 간식 ${g.snack} · 🧶 장난감 ${g.toy} · 🪮 빗 ${g.brush}",
-            fontSize = 14.sp,
-        )
+        BagCard(state, onUseBag)
         StepsCard(state)
+    }
+}
+
+/** 가방: 상점에서 산 소모품을 쿨다운 없이 쓴다. */
+@Composable
+private fun BagCard(state: GameState, onUse: (CatId, ShopItem) -> Unit) {
+    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9F1))) {
+        Column(Modifier.padding(16.dp)) {
+            Text("🎒 가방", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            for (item in ShopItem.entries.filter { it.kind == ShopKind.CONSUMABLE }) {
+                val n = ShopRules.bagCount(state.game, item)
+                Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("${item.icon} ${item.label} ${n}개", Modifier.weight(1f), fontSize = 14.sp)
+                    for (id in CatId.entries) {
+                        TextButton(onClick = { onUse(id, item) }, enabled = n > 0) { Text("${id.catName}에게") }
+                    }
+                }
+            }
+        }
     }
 }
 

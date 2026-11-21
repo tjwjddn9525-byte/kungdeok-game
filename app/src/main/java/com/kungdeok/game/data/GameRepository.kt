@@ -9,6 +9,10 @@ import com.kungdeok.game.logic.Gift
 import com.kungdeok.game.logic.RelationshipRules
 import com.kungdeok.game.logic.StepRules
 import com.kungdeok.game.logic.FusionRules
+import com.kungdeok.game.logic.BuyResult
+import com.kungdeok.game.logic.ShopItem
+import com.kungdeok.game.logic.ShopKind
+import com.kungdeok.game.logic.ShopRules
 import com.kungdeok.game.logic.epochDay
 import com.kungdeok.game.logic.EvolutionRules
 import com.kungdeok.game.logic.ExpRules
@@ -164,6 +168,47 @@ class GameRepository(
     }
 
     fun today(): Long = epochDay(clock())
+
+    // ---- 상점과 꾸미기 (3단계) ----
+
+    suspend fun buy(item: ShopItem): BuyResult = mutex.withLock {
+        var s = loadAndAdvance()
+        val (g, r) = ShopRules.buy(s.game, item)
+        s = s.copy(game = g)
+        save(s)
+        r
+    }
+
+    suspend fun togglePlaced(item: ShopItem) = mutex.withLock {
+        var s = loadAndAdvance()
+        s = s.copy(game = ShopRules.togglePlaced(s.game, item))
+        save(s)
+    }
+
+    /** [cat] 에게 [item] 을 씌운다. 이미 쓰고 있으면 벗긴다. */
+    suspend fun toggleAccessory(cat: CatId, item: ShopItem) = mutex.withLock {
+        var s = loadAndAdvance()
+        if (item.kind == ShopKind.ACCESSORY && item.id in s.game.owned) {
+            val c = s.cat(cat)
+            s = s.withCat(cat, c.copy(accessory = if (c.accessory == item.id) "" else item.id))
+        }
+        save(s)
+    }
+
+    /** 가방의 소모품을 쓴다. 쿨다운 없이 효과와 경험치. 없거나 자는 중이면 null. */
+    suspend fun useBagItem(cat: CatId, item: ShopItem): Double? = mutex.withLock {
+        var s = loadAndAdvance()
+        val action = ShopRules.careActionOf(item) ?: return@withLock null
+        val c = s.cat(cat)
+        if (ShopRules.bagCount(s.game, item) <= 0) return@withLock null
+        if (c.isAsleep(clock()) && CareRules.blockedBySleep(action)) return@withLock null
+        val exp = ExpRules.gain(c, action)
+        s = s.withCat(cat, ExpRules.addExp(ShopRules.useEffect(c, item), exp))
+        s = s.copy(game = ShopRules.addToBag(s.game, item, -1))
+        s = checkEvolution(s)
+        save(s)
+        exp
+    }
 
     /** 합체. 성공하면 처음 합체인지(도감 등록) 여부, 조건이 안 되면 null. */
     suspend fun fuse(): Boolean? = mutex.withLock {

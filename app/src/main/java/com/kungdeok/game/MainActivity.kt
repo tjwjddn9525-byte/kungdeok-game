@@ -14,6 +14,7 @@ import com.kungdeok.game.model.Form
 import com.kungdeok.game.ui.EvolutionScreen
 import com.kungdeok.game.ui.GiftDialog
 import com.kungdeok.game.ui.DexScreen
+import com.kungdeok.game.ui.ShopScreen
 import com.kungdeok.game.logic.DailyRules
 import com.kungdeok.game.logic.FusionRules
 import com.kungdeok.game.ui.FusionScreen
@@ -57,6 +58,7 @@ enum class Tab(val label: String, val icon: String) {
     ROOM("방", "🏠"),
     STATUS("상태", "📊"),
     DEX("도감", "📖"),
+    SHOP("상점", "🛒"),
     SETTINGS("설정", "⚙️"),
 }
 
@@ -157,7 +159,8 @@ private fun App(vm: MainViewModel) {
                             }
                         }
                     }
-                    Tab.STATUS -> StatusScreen(s, now)
+                    Tab.STATUS -> StatusScreen(s, now, vm::useBag)
+                    Tab.SHOP -> ShopScreen(s, vm::buy, vm::togglePlace, vm::toggleWear)
                     Tab.DEX -> DexScreen(s)
                     Tab.SETTINGS -> SettingsScreen(canDrawOverlays, notificationsAllowed)
                 }

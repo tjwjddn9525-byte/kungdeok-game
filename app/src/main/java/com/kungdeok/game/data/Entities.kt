@@ -28,6 +28,10 @@ data class CatEntity(
     val evolutionReady: Boolean = false,
     /** "진화할 수 있어요" 알림을 이미 보냈는지. 진화하면 다시 false. */
     val evolutionNotified: Boolean = false,
+
+    // ---- 3단계 (DB 버전 3) ----
+    /** 착용한 꾸미기 아이템 id (없으면 "") */
+    @ColumnInfo(defaultValue = "") val accessory: String = "",
 ) {
     val average: Double get() = (hunger + mood + cleanliness + sleepiness) / 4.0
     fun isAsleep(now: Long): Boolean = now < sleepUntil
@@ -67,9 +71,24 @@ data class GameEntity(
     @ColumnInfo(defaultValue = "0") val fusionSeen: Boolean = false,
     /** 매일 선물 (SPEC 5-2): 마지막으로 받은 날 */
     @ColumnInfo(defaultValue = "0") val lastGiftDay: Long = 0,
+
+    // ---- 3단계 (DB 버전 3) ----
+    /** 캣타워에서 깬 가장 높은 층 (0 = 아직 없음) */
+    @ColumnInfo(defaultValue = "0") val towerFloor: Int = 0,
+    /** 산 꾸미기 아이템 id 들 (쉼표로 구분) */
+    @ColumnInfo(defaultValue = "") val ownedDecor: String = "",
+    /** 방에 놓아 둔 가구 id 들 (쉼표로 구분) */
+    @ColumnInfo(defaultValue = "") val placedDecor: String = "",
+    /** 새벽에 깨우기를 마지막으로 한 날 */
+    @ColumnInfo(defaultValue = "0") val lastDawnDay: Long = 0,
 ) {
     fun isFused(now: Long): Boolean = now < fusionUntil
+
+    val owned: Set<String> get() = ownedDecor.split(',').filter { it.isNotBlank() }.toSet()
+    val placed: Set<String> get() = placedDecor.split(',').filter { it.isNotBlank() }.toSet()
 }
+
+fun Set<String>.joinIds(): String = sorted().joinToString(",")
 
 /** 진화 조건(최근 N일 평균 상태)을 위한 1시간 간격 기록. */
 @Entity(tableName = "condition_samples", indices = [Index("catId", "at")])

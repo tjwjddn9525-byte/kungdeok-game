@@ -7,6 +7,8 @@ import com.kungdeok.game.KungdeokApp
 import com.kungdeok.game.data.GameState
 import com.kungdeok.game.logic.CareAction
 import com.kungdeok.game.logic.Gift
+import com.kungdeok.game.logic.BuyResult
+import com.kungdeok.game.logic.ShopItem
 import com.kungdeok.game.logic.CareResult
 import com.kungdeok.game.model.CatId
 import kotlinx.coroutines.delay
@@ -86,6 +88,36 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun closeGift() {
         _gift.value = null
+    }
+
+    // ---- 상점 (3단계) ----
+    fun buy(item: ShopItem) {
+        viewModelScope.launch {
+            val msg = when (repo.buy(item)) {
+                BuyResult.Ok -> "${item.icon} ${item.label}을(를) 샀어요!"
+                BuyResult.NotEnoughGold -> "골드가 모자라요"
+                BuyResult.AlreadyOwned -> "이미 가지고 있어요"
+            }
+            _messages.emit(msg)
+        }
+    }
+
+    fun togglePlace(item: ShopItem) {
+        viewModelScope.launch { repo.togglePlaced(item) }
+    }
+
+    fun toggleWear(cat: CatId, item: ShopItem) {
+        viewModelScope.launch { repo.toggleAccessory(cat, item) }
+    }
+
+    fun useBag(cat: CatId, item: ShopItem) {
+        viewModelScope.launch {
+            val exp = repo.useBagItem(cat, item)
+            _messages.emit(
+                if (exp == null) "${cat.catName}에게 ${item.label}을(를) 줄 수 없어요 (없거나 자는 중)"
+                else "${cat.catName}: ${item.icon} ${item.label}! (경험치 +${formatExp(exp)})",
+            )
+        }
     }
 
     fun care(targets: List<CatId>, action: CareAction) {

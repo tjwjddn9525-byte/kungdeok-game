@@ -32,6 +32,24 @@ class ScreenShots {
         KungdeokTheme { RoomScreen(fusedState, 1000L, Target.BOTH, {}, {}) }
     }
 
+    @Test fun roomDecorated() = paparazzi.snapshot {
+        val decorated = state.copy(
+            kung = state.kung.copy(accessory = "ribbon", hunger = 80.0),
+            game = state.game.copy(
+                ownedDecor = "box,cushion,picture,plant,ribbon,scratcher",
+                placedDecor = "box,cushion,picture,plant,scratcher",
+            ),
+        )
+        // now = 10분 칸 1번 → 노덕이 박스에 (노덕 기분이 낮으면 안 들어감 → 기분 올림)
+        val s2 = decorated.copy(nodeok = decorated.nodeok.copy(mood = 80.0))
+        KungdeokTheme { RoomScreen(s2, 10 * 60_000L + 1000L, Target.BOTH, {}, {}) }
+    }
+
+    @Test fun shop() = paparazzi.snapshot {
+        val rich = state.copy(game = state.game.copy(gold = 300, ownedDecor = "box,ribbon", placedDecor = "box"))
+        KungdeokTheme { ShopScreen(rich, {}, {}, { _, _ -> }) }
+    }
+
     @Test fun dex() = paparazzi.snapshot {
         KungdeokTheme { DexScreen(state) }
     }

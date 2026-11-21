@@ -18,6 +18,7 @@ import android.view.ViewConfiguration
 import android.view.WindowManager
 import com.kungdeok.game.data.CatEntity
 import com.kungdeok.game.logic.StatusRules
+import com.kungdeok.game.logic.ShopItem
 import com.kungdeok.game.model.CatId
 import com.kungdeok.game.model.Form
 import com.kungdeok.game.model.Stage
@@ -77,6 +78,7 @@ class CatOverlay(
     private var sulking = false
     private var messy = false
     private var sizeScale = 1f
+    private var accessoryIcon: String? = null
 
     // ---- 화면 위 움직임 ----
     private val params = WindowManager.LayoutParams(
@@ -131,6 +133,7 @@ class CatOverlay(
         color = Color.WHITE; textSize = dp(12f); typeface = Typeface.DEFAULT_BOLD
         setShadowLayer(dp(1.5f), 0f, 0f, Color.parseColor("#5A3A28"))
     }
+    private val accessoryPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = dp(13f) }
     private val heartPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#E86A8A"); textSize = dp(15f); typeface = Typeface.DEFAULT_BOLD
         setShadowLayer(dp(1.5f), 0f, 0f, Color.WHITE)
@@ -217,6 +220,7 @@ class CatOverlay(
             invalidate()
             return
         }
+        accessoryIcon = ShopItem.byId(state.accessory)?.icon
         bubble = StatusRules.bubble(state, now)
         asleep = state.isAsleep(now)
         sulking = state.mood < StatusRules.LOW && !asleep
@@ -419,6 +423,10 @@ class CatOverlay(
         canvas.restore()
 
         val top = dstRect.top
+        accessoryIcon?.let {
+            val tw = accessoryPaint.measureText(it)
+            canvas.drawText(it, cx - tw / 2, top + dp(10f), accessoryPaint)
+        }
         if (messy) canvas.drawText("💨", dstRect.right - dp(14f), top + dp(14f), effectPaint)
         if (behavior == Behavior.NAP && !dragging) {
             val zx = cx + dw * 0.25f

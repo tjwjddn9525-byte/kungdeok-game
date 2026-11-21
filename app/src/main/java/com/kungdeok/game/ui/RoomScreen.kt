@@ -13,6 +13,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.FilterQuality
+import com.kungdeok.game.logic.ShopItem
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -79,6 +84,7 @@ fun RoomScreen(
                 .background(Brush.verticalGradient(0f to Wall, 0.42f to Wall, 0.42f to Floor, 1f to Floor)),
         ) {
             RoomDecor()
+            RoomFurniture(state.game.placed, inBox = boxSitter(state, now))
             Row(
                 Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 16.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
@@ -87,7 +93,9 @@ fun RoomScreen(
                 if (state.game.isFused(now)) {
                     FusedCat(state.game.fusionUntil - now)
                 } else for (id in CatId.entries) {
+                    val sitter = boxSitter(state, now)
                     RoomCat(
+                        inBox = sitter?.id == id.id,
                         cat = state.cat(id),
                         id = id,
                         now = now,
@@ -101,6 +109,51 @@ fun RoomScreen(
         }
         CarePanel(state, now, target, onTarget, onCare)
     }
+}
+
+/** 상점에서 산 가구 (3단계). [inBox] 가 있으면 박스 안에 그 고양이가 들어가 있다. */
+@Composable
+private fun RoomFurniture(placed: Set<String>, inBox: CatEntity?) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val w = maxWidth
+        val h = maxHeight
+        @Composable
+        fun item(id: String, x: Float, y: Float, size: Int) {
+            val shop = ShopItem.byId(id) ?: return
+            if (id !in placed) return
+            Text(shop.icon, fontSize = size.sp, modifier = Modifier.offset(w * x, h * y))
+        }
+        item("picture", 0.06f, 0.10f, 40)
+        item("plant", 0.80f, 0.33f, 44)
+        item("scratcher", 0.04f, 0.36f, 40)
+        item("cushion", 0.40f, 0.48f, 40)
+        if ("box" in placed) {
+            Box(Modifier.offset(w * 0.70f, h * 0.53f)) {
+                if (inBox != null) {
+                    val form = Form.of(CatId.of(inBox.id), inBox.stage)
+                    Image(
+                        rememberSprite(form.smallAsset),
+                        form.monName,
+                        Modifier.size(44.dp).offset(y = (-22).dp).align(Alignment.TopCenter),
+                        filterQuality = FilterQuality.None,
+                    )
+                }
+                Text("📦", fontSize = 52.sp)
+            }
+        }
+    }
+}
+
+/** 박스가 있으면 기분 좋고 깨어 있는 고양이가 30분 중 10분쯤 박스에 들어가 있다 (실제 버릇). */
+fun boxSitter(state: GameState, now: Long): CatEntity? {
+    if ("box" !in state.game.placed) return null
+    val slot = (now / (10 * 60_000L)) % 3
+    val cat = when (slot) {
+        0L -> state.kung
+        1L -> state.nodeok
+        else -> return null
+    }
+    return cat.takeIf { !it.isAsleep(now) && it.mood >= StatusRules.BUBBLE }
 }
 
 /** 벽의 창문과 바닥 러그 */
@@ -166,6 +219,7 @@ private fun FusedCat(leftMs: Long) {
 
 @Composable
 private fun RoomCat(
+    inBox: Boolean,
     cat: CatEntity,
     id: CatId,
     now: Long,
@@ -220,9 +274,12 @@ private fun RoomCat(
                         scaleY = if (sulking) 0.92f else 1f
                         rotationZ = if (asleep) -8f else 0f
                     }
-                    .alpha(if (asleep) 0.85f else 1f),
+                    .alpha(if (inBox) 0f else if (asleep) 0.85f else 1f),
             )
-            if (messy) Text("💨", Modifier.align(Alignment.TopEnd), fontSize = 22.sp)
+            if (messy && !inBox) Text("💨", Modifier.align(Alignment.TopEnd), fontSize = 22.sp)
+            ShopItem.byId(cat.accessory)?.takeIf { !inBox }?.let {
+                Text(it.icon, Modifier.align(Alignment.TopCenter).graphicsLayer { translationY = -bob }, fontSize = 26.sp)
+            }
         }
         Text(
             "${form.monName}  Lv.${cat.level}",
@@ -234,7 +291,8 @@ private fun RoomCat(
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp,
         )
-        if (sulking) Text("(삐져서 등 돌림)", fontSize = 11.sp, color = Choco)
+        if (inBox) Text("(박스에 쏙 들어감)", fontSize = 11.sp, color = Choco)
+        else if (sulking) Text("(삐져서 등 돌림)", fontSize = 11.sp, color = Choco)
     }
 }
 
