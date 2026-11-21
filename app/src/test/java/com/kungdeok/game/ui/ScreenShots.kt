@@ -27,6 +27,10 @@ class ScreenShots {
         KungdeokTheme { RoomScreen(state, 1000L, Target.BOTH, {}, {}) }
     }
 
+    @Test fun dex() = paparazzi.snapshot {
+        KungdeokTheme { DexScreen(state) }
+    }
+
     @Test fun status() = paparazzi.snapshot {
         KungdeokTheme { StatusScreen(state, 1000L) }
     }

@@ -13,6 +13,7 @@ import com.kungdeok.game.model.CatId
 import com.kungdeok.game.model.Form
 import com.kungdeok.game.ui.EvolutionScreen
 import com.kungdeok.game.ui.GiftDialog
+import com.kungdeok.game.ui.DexScreen
 import com.kungdeok.game.logic.DailyRules
 import com.kungdeok.game.ui.SettingsScreen
 import com.kungdeok.game.overlay.OverlayService
@@ -53,6 +54,7 @@ import com.kungdeok.game.ui.Target
 enum class Tab(val label: String, val icon: String) {
     ROOM("방", "🏠"),
     STATUS("상태", "📊"),
+    DEX("도감", "📖"),
     SETTINGS("설정", "⚙️"),
 }
 
@@ -142,6 +144,7 @@ private fun App(vm: MainViewModel) {
                         EvolveButtons(s) { vm.evolve(it) }
                     }
                     Tab.STATUS -> StatusScreen(s, now)
+                    Tab.DEX -> DexScreen(s)
                     Tab.SETTINGS -> SettingsScreen(canDrawOverlays, notificationsAllowed)
                 }
             }
