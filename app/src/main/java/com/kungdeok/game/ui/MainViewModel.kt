@@ -14,6 +14,7 @@ import com.kungdeok.game.logic.BattleResult
 import com.kungdeok.game.logic.BattleRules
 import com.kungdeok.game.logic.Reward
 import com.kungdeok.game.logic.ShopItem
+import com.kungdeok.game.logic.ShopRules
 import com.kungdeok.game.logic.CareResult
 import com.kungdeok.game.model.CatId
 import kotlinx.coroutines.delay
@@ -157,6 +158,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun useBag(cat: CatId, item: ShopItem) {
         viewModelScope.launch {
             val exp = repo.useBagItem(cat, item)
+            if (exp != null) ShopRules.careActionOf(item)?.let { playCare(setOf(cat), it) }
             _messages.emit(
                 if (exp == null) "${cat.catName}에게 ${item.label}을(를) 줄 수 없어요 (없거나 자는 중)"
                 else "${cat.catName}: ${item.icon} ${item.label}! (경험치 +${formatExp(exp)})",
@@ -164,9 +166,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** 방에서 틀어 줄 돌봄 장면 */
+    private val _careAnim = MutableStateFlow<CareAnimEvent?>(null)
+    val careAnim: StateFlow<CareAnimEvent?> = _careAnim
+
+    private fun playCare(cats: Set<CatId>, action: CareAction) {
+        if (cats.isEmpty()) return
+        val now = System.currentTimeMillis()
+        _careAnim.value = CareAnimEvent(System.nanoTime(), cats, action, now)
+    }
+
     fun care(targets: List<CatId>, action: CareAction) {
         viewModelScope.launch {
             val outcome = repo.care(targets, action)
+            playCare(outcome.results.filterValues { it is CareResult.Done }.keys, action)
             var text = outcome.results.entries.joinToString("\n") { (id, r) -> describe(id, action, r) }
             outcome.jealous?.let { text += "\n${it.catName}: 흥! (질투해서 기분 -5)" }
             _messages.emit(text)

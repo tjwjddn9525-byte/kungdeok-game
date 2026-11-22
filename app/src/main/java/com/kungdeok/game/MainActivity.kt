@@ -115,6 +115,7 @@ private fun App(vm: MainViewModel) {
     val evolution by vm.evolution.collectAsStateWithLifecycle()
     val fusion by vm.fusion.collectAsStateWithLifecycle()
     val battle by vm.battle.collectAsStateWithLifecycle()
+    val careAnim by vm.careAnim.collectAsStateWithLifecycle()
     val reward by vm.reward.collectAsStateWithLifecycle()
     // 권한 화면에서 돌아올 때마다 다시 확인한다.
     val context = LocalContext.current
@@ -153,7 +154,7 @@ private fun App(vm: MainViewModel) {
                     Tab.ROOM -> {
                         // 합체 중에는 돌봄이 두 마리 모두에게 간다.
                         val t = if (s.game.isFused(now)) Target.BOTH else target
-                        RoomScreen(s, now, t, { target = it }, { vm.care(t.cats, it) }) {
+                        RoomScreen(s, now, t, { target = it }, { vm.care(t.cats, it) }, careAnim) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 EvolveButtons(s) { vm.evolve(it) }
                                 if (FusionRules.block(s, now, vm.today()) == null) {

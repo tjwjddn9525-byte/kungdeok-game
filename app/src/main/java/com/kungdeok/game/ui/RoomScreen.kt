@@ -17,6 +17,15 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntSize
 import com.kungdeok.game.logic.ShopItem
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
@@ -73,6 +82,7 @@ fun RoomScreen(
     target: Target,
     onTarget: (Target) -> Unit,
     onCare: (CareAction) -> Unit,
+    anim: CareAnimEvent? = null,
     extra: @Composable () -> Unit = {},
 ) {
     Column(Modifier.fillMaxSize()) {
@@ -95,6 +105,7 @@ fun RoomScreen(
                 } else for (id in CatId.entries) {
                     val sitter = boxSitter(state, now)
                     RoomCat(
+                        anim = anim?.takeIf { id in it.cats },
                         inBox = sitter?.id == id.id,
                         cat = state.cat(id),
                         id = id,
@@ -219,6 +230,7 @@ private fun FusedCat(leftMs: Long) {
 
 @Composable
 private fun RoomCat(
+    anim: CareAnimEvent?,
     inBox: Boolean,
     cat: CatEntity,
     id: CatId,
@@ -240,6 +252,22 @@ private fun RoomCat(
         animationSpec = infiniteRepeatable(tween(if (asleep) 1600 else 600), RepeatMode.Reverse),
         label = "bob",
     )
+    // 돌봄 장면 (밥 먹기, 털실 놀이 등). 탭을 옮겼다 와도 남은 부분만 이어서 튼다.
+    val progress = remember { Animatable(1f) }
+    LaunchedEffect(anim?.id) {
+        val a = anim ?: return@LaunchedEffect
+        val dur = CareAnimation.durationMs(a.action)
+        val elapsed = System.currentTimeMillis() - a.startedAt
+        if (elapsed >= dur) return@LaunchedEffect
+        progress.snapTo(elapsed.toFloat() / dur)
+        progress.animateTo(1f, tween((dur - elapsed).toInt(), easing = LinearEasing))
+    }
+    val playing = anim != null && progress.value < 1f
+    val pose = if (playing) CareAnimation.pose(anim!!.action, progress.value) else CarePose()
+    val props = if (playing) CareAnimation.props(anim!!.action, progress.value) else emptyList()
+    var sizePx by remember { mutableStateOf(IntSize.Zero) }
+    val density = LocalDensity.current
+
     // 진화할수록 방 안에서도 덩치가 커진다 (유년기 60% → 궁극체 100% 폭).
     val widthFraction = 0.6f + 0.4f * (Stage.of(cat.stage).overlayDp - 40) / 48f
 
@@ -267,18 +295,46 @@ private fun RoomCat(
                 modifier = Modifier
                     .fillMaxWidth(widthFraction.coerceAtMost(1f))
                     .aspectRatio(1f)
+                    .onSizeChanged { sizePx = it }
                     .graphicsLayer {
-                        translationY = -bob
+                        transformOrigin = TransformOrigin(0.5f, 1f)
+                        translationX = pose.dx * size.width
+                        translationY = (if (playing) 0f else -bob) + pose.dy * size.height
                         // 기분이 바닥이면 등을 돌리고 앉는다: 좌우 반전 + 살짝 작게
-                        scaleX = if (sulking) -0.92f else 1f
-                        scaleY = if (sulking) 0.92f else 1f
-                        rotationZ = if (asleep) -8f else 0f
+                        val base = if (sulking && !playing) 0.92f else 1f
+                        scaleX = base * pose.sx * (if (sulking && !playing) -1f else 1f) * (if (pose.flip) -1f else 1f)
+                        scaleY = base * pose.sy
+                        rotationZ = (if (asleep && !playing) -8f else 0f) + pose.rot
                     }
-                    .alpha(if (inBox) 0f else if (asleep) 0.85f else 1f),
+                    .alpha(if (inBox && !playing) 0f else if (asleep && !playing) 0.85f else 1f),
             )
-            if (messy && !inBox) Text("💨", Modifier.align(Alignment.TopEnd), fontSize = 22.sp)
+            // 장면 소품: 밥그릇, 털실, 빗, "냠" 같은 글자
+            for (prop in props) {
+                Text(
+                    prop.text,
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .graphicsLayer {
+                            translationX = prop.x * sizePx.width
+                            translationY = prop.y * sizePx.height
+                            rotationZ = prop.rot
+                            alpha = prop.alpha.coerceIn(0f, 1f)
+                        },
+                    fontSize = with(density) { (prop.size * sizePx.width).coerceAtLeast(1f).toSp() },
+                    color = Choco,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+            if (messy && !inBox && !playing) Text("💨", Modifier.align(Alignment.TopEnd), fontSize = 22.sp)
             ShopItem.byId(cat.accessory)?.takeIf { !inBox }?.let {
-                Text(it.icon, Modifier.align(Alignment.TopCenter).graphicsLayer { translationY = -bob }, fontSize = 26.sp)
+                Text(
+                    it.icon,
+                    Modifier.align(Alignment.TopCenter).graphicsLayer {
+                        translationX = pose.dx * sizePx.width
+                        translationY = (if (playing) 0f else -bob) + pose.dy * sizePx.height
+                    },
+                    fontSize = 26.sp,
+                )
             }
         }
         Text(
