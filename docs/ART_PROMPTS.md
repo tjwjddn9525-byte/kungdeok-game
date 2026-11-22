@@ -14,6 +14,51 @@
 
 ---
 
+## 전체 목록 (체크리스트)
+
+지금 앱에서 이모지·단색 도형으로 대신하거나 프로그램이 자동으로 만든 그림을 모두 모았습니다.
+**우선순위**: ★★★ 화면에서 제일 많이 보임 → ★ 있으면 좋음
+
+| # | 파일 이름 (`raw/ui/`) | 내용 | 앱에서 쓰이는 곳 | 지금은 | 우선 | 완료 |
+|---|---|---|---|---|---|---|
+| 1 | `room_background.png` | 방 배경 | 방 탭 | 단색 벽·바닥·그린 창문 | ★★★ | ☐ |
+| 2 | `tower_background.png` | 캣타워 밤 배경 | 캣타워 전투 무대 | 단색 + 그린 창문·선반 | ★★ | ☐ |
+| 3 | `furniture_sheet.png` | 가구 5개 | 방, 상점 | 📦🪴🧺🪵🖼️ 이모지 | ★★ | ☐ |
+| 4 | `accessories_sheet.png` | 꾸미기 5개 | 고양이 머리 위, 상점 | 🎀🔔🌸🕶️👑 이모지 | ★★ | ☐ |
+| 5 | `items_sheet.png` | 아이템 6개 (밥·간식·털실·빗·선물·코인) | 상점, 가방, 돌봄 장면 소품, 선물 상자, 골드 표시 | 🍚🍤🧶🪮🎁🪙 이모지 | ★★ | ☐ |
+| 6 | `care_icons_sheet.png` | 돌봄 버튼 6개 | 방 돌봄 버튼, 화면 위 고양이 메뉴 | 🤚🍚🍤🧶🪮🌙 이모지 | ★★★ | ☐ |
+| 7 | `tab_icons_sheet.png` | 탭 6개 | 아래 탭 바 | 🏠📊📖🗼🛒⚙️ 이모지 | ★ | ☐ |
+| 8 | `mobs_sheet.png` | 바탕화면 잡몹 6마리 | 바탕화면 사냥 | 🐭🪰🦗🐞🕷️🦋 이모지 | ★★★ | ☐ |
+| 9 | `enemies_sheet.png` | 캣타워 일반 적 8마리 | 캣타워 | 🐭🪰🐦🦎🕷️🐦‍⬛🧦👻 이모지 | ★★★ | ☐ |
+| 10 | `boss_broom.png` | 보스: 빗자루 대장 (5층) | 캣타워 | 🧹 | ★★ | ☐ |
+| 11 | `boss_robot_vacuum.png` | 보스: 로봇청소기 (10층) | 캣타워 | 🤖 | ★★ | ☐ |
+| 12 | `boss_hair_dryer.png` | 보스: 드라이기 (15층) | 캣타워 | 💨 | ★★ | ☐ |
+| 13 | `boss_neighbor_dog.png` | 보스: 옆집 강아지 (20층) | 캣타워 | 🐕 | ★★ | ☐ |
+| 14 | `boss_bathtub.png` | 보스: 목욕통 (25층) | 캣타워 | 🛁 | ★★ | ☐ |
+| 15 | `boss_vet_carrier.png` | 보스: 동물병원 가방 (30층) | 캣타워 | 🧳 | ★★ | ☐ |
+| 16 | `effects_sheet.png` | 효과 8개 | 전투 💥⭐💫, 돌봄 ✨❤, 잠 z, 먼지 | 이모지·동그라미 | ★★ | ☐ |
+| 17 | `app_icon.png` | 앱 아이콘 | 폰 홈 화면 | 콩덕몬 그림 잘라 씀 | ★ | ☐ |
+| 18 | `status_icons_sheet.png` | 상태 아이콘 4개 (배고픔·기분·청결·졸림) | 상태 막대, 화면 위 메뉴 | 🍚😊🫧💤 이모지 | ★ | ☐ |
+| 19 | `<캐릭터 파일 이름>_walk1.png` 등 | 캐릭터 걷기 2장 + 잠자기 1장 × 11형태 = 33장 | 화면 위 고양이 걷기·잠 | 원래 그림을 기울이고 눌러서 자동 생성 | ★★ (형태마다) | ☐ |
+
+19번은 `raw/ui/`가 아니라 **`raw/`** 폴더에 올립니다 (예: `raw/kung_1_somkungmon_walk1.png`). 지금 키우는 형태부터 하면 됩니다.
+
+| 형태 | walk1 | walk2 | sleep |
+|---|---|---|---|
+| kung_1_somkungmon (솜쿵몬) | ☐ | ☐ | ☐ |
+| kung_2_kungnyangmon (쿵냥몬) | ☐ | ☐ | ☐ |
+| kung_3_galgikungmon (갈기쿵몬) | ☐ | ☐ | ☐ |
+| kung_4_sajakungmon (사자쿵몬) | ☐ | ☐ | ☐ |
+| kung_5_eunhakungmon (은하쿵몬) | ☐ | ☐ | ☐ |
+| nodeok_1_kongdeokmon (콩덕몬) | ☐ | ☐ | ☐ |
+| nodeok_2_nodeokmon (노덕몬) | ☐ | ☐ | ☐ |
+| nodeok_3_mukjikdeokmon (묵직덕몬) | ☐ | ☐ | ☐ |
+| nodeok_4_gureumdeokmon (구름덕몬) | ☐ | ☐ | ☐ |
+| nodeok_5_deokhwangmon (덕황몬) | ☐ | ☐ | ☐ |
+| fusion_kungdeokmon (쿵덕몬) | ☐ | ☐ | ☐ |
+
+---
+
 ## 0. 스타일 지정 (첫 메시지, 캐릭터 그림 첨부)
 
 ```
@@ -126,3 +171,25 @@ Order: 1. a comic hit impact burst (orange and yellow)  2. a bright yellow star 
 ```
 A square app icon in pixel art, filling the whole image (no white background): the faces of the two attached cats side by side, cheek to cheek — the gray tabby on the left and the cream cat with the chocolate face on the right — on a warm cream (#F6EBDD) rounded-square background. No text.
 ```
+
+## 18. 상태 아이콘 4개 → `status_icons_sheet.png`
+
+```
+Four tiny status icons for a pet game, arranged in a row of 4 with lots of white space between them. Simple, bold, readable at very small size, white background.
+Order: 1. a cat food bowl (hunger)  2. a smiling cat face (mood)  3. soap bubbles (cleanliness)  4. a sleepy crescent moon (sleepiness)
+```
+
+## 19. 캐릭터 걷기·잠자기 프레임 (형태마다 따로, 새 대화 추천)
+
+**해당 형태의 원래 그림 한 장만 첨부**하고 보냅니다. 세 장을 한 번에 받으면 크기가 같아서 좋습니다.
+
+```
+This is a character from my pixel art game (attached). Draw three animation frames of EXACTLY this same character — same design, same colors, same outline, same pixel size, same facing direction and the same overall size — in a row of 3 with lots of white space between them, white background, no text:
+1. walking, left front paw and right back paw stepping forward
+2. walking, the opposite paws stepping forward
+3. sleeping: curled up lying down, eyes closed, peaceful
+Do not add anything else (no ground, no shadow, no "Z" letters).
+```
+
+받은 그림은 저에게 주시면 세 장으로 잘라서 `raw/<형태 파일 이름>_walk1.png`, `_walk2.png`, `_sleep.png` 로 넣겠습니다.
+(직접 자르실 필요 없이 한 장 그대로 `raw/ui/frames_<형태 파일 이름>.png` 로 올려 주셔도 됩니다.)
