@@ -84,6 +84,31 @@ class MobOverlay(
     private var flyTarget = 0f to 0f
     private var dropTargetY = 0f
     private var flashLeft = 0f
+    /** 히트스톱 (맞는 순간 찰나 멈춤) */
+    private var freezeLeft = 0f
+    /** 할퀸 자국 남은 시간 */
+    private var slashLeft = 0f
+
+    /** 맞았을 때 튀는 픽셀 파편 (창 안 좌표) */
+    private class Bit(var x: Float, var y: Float, var vx: Float, var vy: Float, val color: Int, var life: Float)
+    private val bits = mutableListOf<Bit>()
+    private val bitPaint = Paint()
+    private val slashPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#FFF8E1"); strokeWidth = 6f; strokeCap = Paint.Cap.ROUND
+    }
+    private val slashInner = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#FF7043"); strokeWidth = 2.5f; strokeCap = Paint.Cap.ROUND
+    }
+    private val whiteTint = android.graphics.PorterDuffColorFilter(Color.WHITE, android.graphics.PorterDuff.Mode.SRC_ATOP)
+
+    private fun burst(n: Int, power: Float) {
+        val colors = intArrayOf(Color.parseColor("#FFE082"), Color.WHITE, Color.parseColor("#FFB74D"))
+        repeat(n) { i ->
+            val ang = (i.toFloat() / n) * 2 * Math.PI.toFloat() + Random.nextFloat() * 0.6f
+            val sp = power * (0.6f + Random.nextFloat() * 0.6f)
+            bits += Bit(bodyCx, bodyCy, kotlin.math.cos(ang) * sp, kotlin.math.sin(ang) * sp - power * 0.4f, colors[i % colors.size], 0.5f)
+        }
+    }
     private var text: String? = null
     private var textTime = 0f
     private var startled = 0f
@@ -189,7 +214,10 @@ class MobOverlay(
     fun hit(): Boolean {
         if (state == State.DEFEATED || state == State.GONE) return false
         hp--
-        flashLeft = 0.25f
+        flashLeft = 0.3f
+        freezeLeft = 0.09f
+        slashLeft = 0.28f
+        burst(if (hp <= 0) 12 else 7, dp(170f))
         if (hp <= 0) {
             state = State.DEFEATED
             textTime = 0f
@@ -222,6 +250,22 @@ class MobOverlay(
     }
 
     fun step(dt: Float) {
+        // 파편은 히트스톱 중에도 움직인다
+        val it = bits.iterator()
+        while (it.hasNext()) {
+            val b = it.next()
+            b.life -= dt
+            if (b.life <= 0) { it.remove(); continue }
+            b.vy += dp(700f) * dt
+            b.x += b.vx * dt
+            b.y += b.vy * dt
+        }
+        if (slashLeft > 0) slashLeft -= dt
+        if (freezeLeft > 0f) {
+            freezeLeft -= dt
+            invalidate()
+            return
+        }
         time += dt
         age += dt
         if (flashLeft > 0) flashLeft -= dt
@@ -328,10 +372,16 @@ class MobOverlay(
             canvas.translate(shake, -bob)
             if (vx > 0 && type.move != MobMove.DROP) canvas.scale(-1f, 1f, cx, cy)
             canvas.scale(1f, flap, cx, cy)
-            val blink = if (flashLeft > 0 && (time * 30).toInt() % 2 == 0) 90 else 255
+            val blink = if (flashLeft > 0 && flashLeft < 0.18f && (time * 30).toInt() % 2 == 0) 90 else 255
             val a = art
             if (a != null) {
                 drawArt(canvas, a, cx, cy, mobSize * 1.35f, blink)
+                // 맞는 순간 하얗게 번쩍
+                if (flashLeft > 0.18f) {
+                    artPaint.colorFilter = whiteTint
+                    drawArt(canvas, a, cx, cy, mobSize * 1.35f, 230)
+                    artPaint.colorFilter = null
+                }
             } else {
                 emojiPaint.alpha = blink
                 val tw = emojiPaint.measureText(type.icon)
@@ -361,6 +411,31 @@ class MobOverlay(
                 canvas.drawText("✨", cx - tw / 2, cy + mobSize * 0.3f, emojiPaint)
                 emojiPaint.alpha = 255
             }
+        }
+
+        // 할퀸 자국 세 줄
+        if (slashLeft > 0f) {
+            val p = 1f - slashLeft / 0.28f
+            val draw = (p / 0.4f).coerceAtMost(1f)
+            val alpha = if (p < 0.4f) 255 else (255 * (1 - (p - 0.4f) / 0.6f)).toInt().coerceIn(0, 255)
+            slashPaint.alpha = alpha
+            slashInner.alpha = alpha
+            val s = mobSize * 1.1f
+            for (k in -1..1) {
+                val sx = cx + k * s * 0.22f + s * 0.3f
+                val sy = cy - s * 0.45f
+                val ex = sx - s * 0.6f * draw
+                val ey = sy + s * 0.9f * draw
+                canvas.drawLine(sx, sy, ex, ey, slashPaint)
+                canvas.drawLine(sx, sy, ex, ey, slashInner)
+            }
+        }
+        // 파편
+        for (b in bits) {
+            bitPaint.color = b.color
+            bitPaint.alpha = (255 * (b.life / 0.5f)).toInt().coerceIn(0, 255)
+            val r = dp(2.5f)
+            canvas.drawRect(b.x - r, b.y - r, b.x + r, b.y + r, bitPaint)
         }
 
         text?.let {

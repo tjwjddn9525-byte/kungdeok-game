@@ -25,8 +25,8 @@ object StatusRules {
     const val BUBBLE = 30.0
 
     /** 재우기 한 번에 자는 시간과 잠든 동안 분당 졸림 회복량. */
-    const val SLEEP_DURATION = 30 * MINUTE
-    const val SLEEP_RECOVER_PER_MINUTE = 3.0
+    const val SLEEP_DURATION = 10 * MINUTE
+    const val SLEEP_RECOVER_PER_MINUTE = 9.0
 
     /** 앱을 아주 오래 꺼 뒀으면 마지막 이만큼만 계산한다 (그 전에 이미 모든 수치가 바닥). */
     const val MAX_CATCH_UP = 8 * DAY

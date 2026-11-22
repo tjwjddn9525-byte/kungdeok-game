@@ -86,4 +86,32 @@ class MobHuntTest {
         row.addView(defeated, LinearLayout.LayoutParams((110 * d).toInt(), (96 * d).toInt()))
         paparazzi.snapshot(row)
     }
+
+    @Test fun huntPoses() {
+        val ctx = paparazzi.context
+        val wm = ctx.getSystemService(android.content.Context.WINDOW_SERVICE) as android.view.WindowManager
+        val d = ctx.resources.displayMetrics.density
+        val row = LinearLayout(ctx).apply {
+            setBackgroundColor(android.graphics.Color.parseColor("#3A4A66"))
+            gravity = android.view.Gravity.BOTTOM
+        }
+        fun cat(script: com.kungdeok.game.overlay.Script, t: Float): CatOverlay =
+            CatOverlay(ctx, wm, CatId.KUNG, noop).apply {
+                update(CatEntity("kung", stage = 2), System.currentTimeMillis())
+                setScreen(1080, 2200, true)
+                play(script)
+                repeat((t / 0.02f).toInt()) { step(0.02f) }
+            }
+        val crouch = cat(com.kungdeok.game.overlay.Script(null, com.kungdeok.game.overlay.Behavior.CROUCH, 1f, faceRight = true), 0.1f)
+        val pounce = cat(com.kungdeok.game.overlay.Script(null, com.kungdeok.game.overlay.Behavior.POUNCE, 0.55f, faceRight = true), 0.33f)
+        val cheer = CatOverlay(ctx, wm, CatId.KUNG, noop).apply {
+            update(CatEntity("kung", stage = 2), System.currentTimeMillis()); setScreen(1080, 2200, true)
+            celebrate(); repeat(6) { step(0.02f) }
+        }
+        val mob = MobOverlay(ctx, wm, MobType.MOUSE, 1080, 2200) {}.apply { step(0.1f); hit(); step(0.03f); step(0.03f) }
+        val mob2 = MobOverlay(ctx, wm, MobType.CRICKET, 1080, 2200) {}.apply { step(0.1f); hit(); repeat(4) { step(0.03f) } }
+        for (v in listOf(mob, mob2)) row.addView(v, LinearLayout.LayoutParams((80 * d).toInt(), (96 * d).toInt()))
+        for (v in listOf(crouch, pounce, cheer)) row.addView(v, LinearLayout.LayoutParams((100 * d).toInt(), (130 * d).toInt()))
+        paparazzi.snapshot(row)
+    }
 }

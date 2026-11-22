@@ -32,8 +32,9 @@ class StatusRulesTest {
     }
 
     @Test fun sleepRecoversSleepiness() {
-        val c = StatusRules.advance(kung.copy(sleepiness = 30.0, sleepUntil = 10 * MINUTE), 0, 10 * MINUTE)
-        assertEquals(60.0, c.sleepiness, 1e-6)
+        // 분당 9씩 회복 (10분 재우기)
+        val c = StatusRules.advance(kung.copy(sleepiness = 30.0, sleepUntil = 10 * MINUTE), 0, 3 * MINUTE)
+        assertEquals(57.0, c.sleepiness, 1e-6)
     }
 
     @Test fun fallsAsleepWhenTooSleepy() {

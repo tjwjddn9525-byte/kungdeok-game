@@ -70,9 +70,11 @@ class MobManager(
             val reach = maxOf(cat.widthPx * 0.45f, 40f * density)
             if (cat.pouncing && cat.pounceT > 0.55f && abs(cat.centerX - m.centerX) < reach) {
                 hunter = null
+                cat.hitStop(0.09f)
                 if (m.hit()) {
                     val gold = MobRules.gold(m.type)
                     m.showReward("+${m.type.exp} EXP  🪙$gold")
+                    cat.celebrate()
                     cat.showTempBubble("잡았다!", 1.8f)
                     onCaught(h.first, m.type.exp, gold)
                 } else {
@@ -140,7 +142,9 @@ class MobManager(
         // 몹 바로 앞까지 전력 질주 → 폴짝 덮치기
         val standCx = m.centerX + (if (fromLeft) -1 else 1) * cat.widthPx * 0.15f
         cat.play(
-            Script(cat.windowXFor(standCx), Behavior.POUNCE, 0.55f, faceRight = fromLeft, speedDp = 230f),
+            // 예비 동작: 몹 쪽을 보고 납작 웅크림 → 잔상 끌며 전력 질주 → 폴짝 덮치기
+            Script(null, Behavior.CROUCH, 0.2f, faceRight = fromLeft),
+            Script(cat.windowXFor(standCx), Behavior.POUNCE, 0.55f, faceRight = fromLeft, speedDp = 260f),
         )
     }
 }

@@ -35,6 +35,10 @@ enum class Behavior {
     BOX, ZOOM, KNEAD,
     /** 잡몹을 덮치는 점프 */
     POUNCE,
+    /** 덮치기 전 웅크림 (예비 동작) */
+    CROUCH,
+    /** 잡고 나서 만세 폴짝 */
+    CHEER,
 }
 
 /** 관계 연출용 특수 효과 */
@@ -152,6 +156,10 @@ class CatOverlay(
     private val zPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE; textSize = dp(12f); typeface = Typeface.DEFAULT_BOLD
         setShadowLayer(dp(1.5f), 0f, 0f, Color.parseColor("#5A3A28"))
+    }
+    private val ghostPaint = Paint().apply {
+        isFilterBitmap = false
+        colorFilter = android.graphics.PorterDuffColorFilter(Color.argb(160, 179, 229, 252), android.graphics.PorterDuff.Mode.SRC_ATOP)
     }
     private val boxPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#C8935A") }
     private val boxLine = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -330,7 +338,26 @@ class CatOverlay(
     }
 
     /** 매 프레임 호출. dt 는 초. */
+    /** 히트스톱: 맞는 순간 찰나 멈춤 */
+    private var freezeLeft = 0f
+    fun hitStop(seconds: Float) {
+        freezeLeft = seconds
+    }
+
+    /** 잡몹을 잡고 기뻐하기 */
+    fun celebrate() {
+        scripts.clear()
+        scripts.addLast(Script(null, Behavior.CHEER, 0.9f))
+        scriptHoldLeft = -1f
+        showHeart()
+    }
+
     fun step(dt: Float) {
+        if (freezeLeft > 0f) {
+            freezeLeft -= dt
+            invalidate()
+            return
+        }
         time += dt
         if (heartTime > 0) heartTime -= dt
         if (tempBubbleTime > 0) tempBubbleTime -= dt else tempBubble = null
@@ -397,7 +424,8 @@ class CatOverlay(
                 if (x >= maxX) { x = maxX; direction = -1 }
                 facingRight = direction > 0
             }
-            Behavior.SIT, Behavior.NAP, Behavior.BOX, Behavior.KNEAD, Behavior.POUNCE -> Unit
+            Behavior.SIT, Behavior.NAP, Behavior.BOX, Behavior.KNEAD, Behavior.POUNCE,
+            Behavior.CROUCH, Behavior.CHEER -> Unit
         }
     }
 
@@ -442,16 +470,16 @@ class CatOverlay(
         val r = Random.nextFloat()
         behavior = when {
             sulking -> if (r < 0.3f) Behavior.WALK else Behavior.SIT
-            r < 0.45f -> Behavior.WALK
-            r < 0.70f -> Behavior.SIT
-            r < 0.90f -> Behavior.LOOK
+            r < 0.47f -> Behavior.WALK
+            r < 0.73f -> Behavior.SIT
+            r < 0.95f -> Behavior.LOOK
             else -> Behavior.NAP
         }
         behaviorLeft = when (behavior) {
             Behavior.WALK -> 3f + Random.nextFloat() * 5f
             Behavior.SIT -> 3f + Random.nextFloat() * 4f
             Behavior.LOOK -> 2f + Random.nextFloat() * 2f
-            Behavior.NAP -> 6f + Random.nextFloat() * 8f
+            Behavior.NAP -> 4f + Random.nextFloat() * 4f
             else -> 3f
         }
         if (behavior == Behavior.WALK) direction = if (Random.nextBoolean()) 1 else -1
@@ -521,6 +549,9 @@ class CatOverlay(
                 if (pounceProgress > 0.85f) squash = 0.85f
             }
             behavior == Behavior.KNEAD -> squash = 1f - 0.05f * abs(sin(time * 8f))
+            // 예비 동작: 납작 웅크림
+            behavior == Behavior.CROUCH -> squash = 0.8f
+            behavior == Behavior.CHEER -> hop = abs(sin(time * 13f)) * dp(12f)
             behavior == Behavior.NAP -> squash = 1f - 0.03f * (1 + sin(time * 2.5f))
             effect == Effect.DUST -> hop = abs(sin(time * 23f)) * dp(5f)
         }
@@ -531,7 +562,25 @@ class CatOverlay(
 
         // 등 돌림(삐짐)은 반대쪽을 보게 한다.
         val flip = if (sulking) !facingRight else facingRight
+        val dir = if (facingRight) 1f else -1f
+        // 돌진·덮치기 중에는 뒤로 잔상
+        if (!dragging && (behavior == Behavior.ZOOM || behavior == Behavior.POUNCE)) {
+            for (k in 2 downTo 1) {
+                canvas.save()
+                canvas.translate(-dir * dw * 0.18f * k, hop * 0.3f * k)
+                if (flip) canvas.scale(-1f, 1f, cx, 0f)
+                ghostPaint.alpha = 70 / k
+                canvas.drawBitmap(bmp, srcRect, dstRect, ghostPaint)
+                canvas.restore()
+            }
+        }
         canvas.save()
+        // 덮칠 때는 앞으로 기울고, 웅크릴 때는 뒤로 젖힌다
+        when (behavior) {
+            Behavior.POUNCE -> canvas.rotate(dir * (-14f + 34f * pounceProgress), cx, bottom)
+            Behavior.CROUCH -> canvas.rotate(-dir * 8f, cx, bottom)
+            else -> Unit
+        }
         if (flip) canvas.scale(-1f, 1f, cx, 0f)
         canvas.drawBitmap(bmp, srcRect, dstRect, spritePaint)
         canvas.restore()
