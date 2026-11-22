@@ -377,3 +377,171 @@ Frames (left to right, top to bottom):
 6. special move impact: striking down with both weapons at once
 Strike in the direction the character is facing; if it faces the viewer, strike toward the right side of the image.
 ```
+
+### 20-2. 형태별 완성 프롬프트 — 8프레임 (4열×2행, 이 버전 권장)
+위 줄 1~6 = 기본 공격(냥냥펀치·잡몹 사냥), 아래 줄 7~8 = 쿵 기술·노덕 기술.
+
+**1. 솜쿵몬** → `raw/ui/attack_kung_1_somkungmon.png`
+```
+This is a character from my pixel art game (attached). Draw 8 battle animation frames of EXACTLY this same character — same design, same colors, same outline, same pixel size, same overall size, same facing direction as the attached image — arranged in a grid of 4 columns and 2 rows with lots of white space between them, white background, no text, no effects, no ground, no shadow.
+Frames (left to right, top to bottom):
+1. ready stance: exactly the attached pose
+2. wind-up: crouching a little, body pulled back
+3. deep crouch: crouching very low, gathering all its strength
+4. leap: springing forward into the air, front paws raised high
+5. strike: swiping down hard with claws, full extension
+6. follow-through: landing after the swipe, paws still forward
+7. special move start: curled into a spinning fluffy ball in mid-air
+8. special move impact: slamming down onto the ground as a ball, fur puffed out
+Strike in the direction the character is facing; if it faces the viewer, strike toward the right side of the image.
+```
+
+**2. 쿵냥몬** → `raw/ui/attack_kung_2_kungnyangmon.png`
+```
+This is a character from my pixel art game (attached). Draw 8 battle animation frames of EXACTLY this same character — same design, same colors, same outline, same pixel size, same overall size, same facing direction as the attached image — arranged in a grid of 4 columns and 2 rows with lots of white space between them, white background, no text, no effects, no ground, no shadow.
+Frames (left to right, top to bottom):
+1. ready stance: exactly the attached pose
+2. wind-up: crouching a little, body pulled back
+3. deep crouch: crouching very low, gathering all its strength
+4. leap: springing forward into the air, front paws raised high
+5. strike: swiping down hard with claws, full extension
+6. follow-through: landing after the swipe, paws still forward
+7. special move start: jumping high with head lowered for a headbutt
+8. special move impact: diving down head-first in a powerful headbutt
+Strike in the direction the character is facing; if it faces the viewer, strike toward the right side of the image.
+```
+
+**3. 갈기쿵몬** → `raw/ui/attack_kung_3_galgikungmon.png`
+```
+This is a character from my pixel art game (attached). Draw 8 battle animation frames of EXACTLY this same character — same design, same colors, same outline, same pixel size, same overall size, same facing direction as the attached image — arranged in a grid of 4 columns and 2 rows with lots of white space between them, white background, no text, no effects, no ground, no shadow.
+Frames (left to right, top to bottom):
+1. ready stance: exactly the attached pose
+2. wind-up: crouching a little, body pulled back
+3. deep crouch: crouching very low, gathering all its strength
+4. leap: springing forward into the air, front paws raised high
+5. strike: swiping down hard with claws, full extension
+6. follow-through: landing after the swipe, paws still forward
+7. special move start: rearing up with mane flaring and a cold glare
+8. special move impact: lunging with jaws open and claws spread
+Strike in the direction the character is facing; if it faces the viewer, strike toward the right side of the image.
+```
+
+**4. 사자쿵몬** → `raw/ui/attack_kung_4_sajakungmon.png`
+```
+This is a character from my pixel art game (attached). Draw 8 battle animation frames of EXACTLY this same character — same design, same colors, same outline, same pixel size, same overall size, same facing direction as the attached image — arranged in a grid of 4 columns and 2 rows with lots of white space between them, white background, no text, no effects, no ground, no shadow.
+Frames (left to right, top to bottom):
+1. ready stance: exactly the attached pose
+2. wind-up: crouching a little, claw gauntlets pulled back
+3. deep crouch: crouching very low, gathering all its strength
+4. leap: springing forward into the air, claw gauntlets raised high
+5. strike: slashing down hard with the claw gauntlets, full extension
+6. follow-through: landing after the slash, gauntlets still forward
+7. special move start: inhaling deeply with chest puffed and mane blowing back
+8. special move impact: roaring forward with claw gauntlets slashing
+Strike in the direction the character is facing; if it faces the viewer, strike toward the right side of the image.
+```
+
+**5. 은하쿵몬** → `raw/ui/attack_kung_5_eunhakungmon.png`
+```
+This is a character from my pixel art game (attached). Draw 8 battle animation frames of EXACTLY this same character — same design, same colors, same outline, same pixel size, same overall size, same facing direction as the attached image — arranged in a grid of 4 columns and 2 rows with lots of white space between them, white background, no text, no effects, no ground, no shadow.
+Frames (left to right, top to bottom):
+1. ready stance: exactly the attached pose
+2. wind-up: crouching a little, star sword pulled back
+3. deep crouch: crouching very low, gathering all its strength
+4. leap: springing forward into the air, star sword raised high
+5. strike: slashing down hard with the star sword, full extension
+6. follow-through: landing after the slash, sword still forward
+7. special move start: soaring upward with star wings spread and sword raised overhead
+8. special move impact: diving down sword-first like a meteor
+Strike in the direction the character is facing; if it faces the viewer, strike toward the right side of the image.
+```
+
+**6. 콩덕몬** → `raw/ui/attack_nodeok_1_kongdeokmon.png`
+```
+This is a character from my pixel art game (attached). Draw 8 battle animation frames of EXACTLY this same character — same design, same colors, same outline, same pixel size, same overall size, same facing direction as the attached image — arranged in a grid of 4 columns and 2 rows with lots of white space between them, white background, no text, no effects, no ground, no shadow.
+Frames (left to right, top to bottom):
+1. ready stance: exactly the attached pose
+2. wind-up: crouching a little, body pulled back
+3. deep crouch: crouching very low, gathering all its strength
+4. leap: springing forward into the air, front paws raised high
+5. strike: swiping down hard with claws, full extension
+6. follow-through: landing after the swipe, paws still forward
+7. special move start: puffing up into a round grumpy ball
+8. special move impact: glaring hard with a tiny paw swipe
+Strike in the direction the character is facing; if it faces the viewer, strike toward the right side of the image.
+```
+
+**7. 노덕몬** → `raw/ui/attack_nodeok_2_nodeokmon.png`
+```
+This is a character from my pixel art game (attached). Draw 8 battle animation frames of EXACTLY this same character — same design, same colors, same outline, same pixel size, same overall size, same facing direction as the attached image — arranged in a grid of 4 columns and 2 rows with lots of white space between them, white background, no text, no effects, no ground, no shadow.
+Frames (left to right, top to bottom):
+1. ready stance: exactly the attached pose
+2. wind-up: crouching a little, body pulled back
+3. deep crouch: crouching very low, gathering all its strength
+4. leap: springing forward into the air, front paws raised high
+5. strike: swiping down hard with claws, full extension
+6. follow-through: landing after the swipe, paws still forward
+7. special move start: winding up a chocolate paw punch
+8. special move impact: throwing a full-power jelly-paw punch forward
+Strike in the direction the character is facing; if it faces the viewer, strike toward the right side of the image.
+```
+
+**8. 묵직덕몬** → `raw/ui/attack_nodeok_3_mukjikdeokmon.png`
+```
+This is a character from my pixel art game (attached). Draw 8 battle animation frames of EXACTLY this same character — same design, same colors, same outline, same pixel size, same overall size, same facing direction as the attached image — arranged in a grid of 4 columns and 2 rows with lots of white space between them, white background, no text, no effects, no ground, no shadow.
+Frames (left to right, top to bottom):
+1. ready stance: exactly the attached pose
+2. wind-up: crouching a little, body pulled back
+3. deep crouch: crouching very low, gathering all its strength
+4. leap: springing forward into the air, front paws raised high
+5. strike: swiping down hard with claws, full extension
+6. follow-through: landing after the swipe, paws still forward
+7. special move start: jumping up high belly-first
+8. special move impact: slamming down flat with its full weight
+Strike in the direction the character is facing; if it faces the viewer, strike toward the right side of the image.
+```
+
+**9. 구름덕몬** → `raw/ui/attack_nodeok_4_gureumdeokmon.png`
+```
+This is a character from my pixel art game (attached). Draw 8 battle animation frames of EXACTLY this same character — same design, same colors, same outline, same pixel size, same overall size, same facing direction as the attached image — arranged in a grid of 4 columns and 2 rows with lots of white space between them, white background, no text, no effects, no ground, no shadow.
+Frames (left to right, top to bottom):
+1. ready stance: exactly the attached pose
+2. wind-up: crouching a little, bear-paw gauntlets pulled back
+3. deep crouch: crouching very low, gathering all its strength
+4. leap: springing forward into the air, bear-paw gauntlets raised high
+5. strike: smashing down hard with the gauntlets, full extension
+6. follow-through: landing after the smash, gauntlets still forward
+7. special move start: rising with the cloud scarf billowing and bear-paw gauntlets raised
+8. special move impact: smashing both gauntlets down onto the ground
+Strike in the direction the character is facing; if it faces the viewer, strike toward the right side of the image.
+```
+
+**10. 덕황몬** → `raw/ui/attack_nodeok_5_deokhwangmon.png`
+```
+This is a character from my pixel art game (attached). Draw 8 battle animation frames of EXACTLY this same character — same design, same colors, same outline, same pixel size, same overall size, same facing direction as the attached image — arranged in a grid of 4 columns and 2 rows with lots of white space between them, white background, no text, no effects, no ground, no shadow.
+Frames (left to right, top to bottom):
+1. ready stance: exactly the attached pose
+2. wind-up: crouching a little, golden scepter pulled back
+3. deep crouch: crouching very low, gathering all its strength
+4. leap: springing forward into the air, golden scepter raised high
+5. strike: swinging the scepter down hard, full extension
+6. follow-through: landing after the swing, scepter still forward
+7. special move start: raising the golden scepter high above the head
+8. special move impact: slamming the scepter straight down
+Strike in the direction the character is facing; if it faces the viewer, strike toward the right side of the image.
+```
+
+**11. 쿵덕몬** → `raw/ui/attack_fusion_kungdeokmon.png`
+```
+This is a character from my pixel art game (attached). Draw 8 battle animation frames of EXACTLY this same character — same design, same colors, same outline, same pixel size, same overall size, same facing direction as the attached image — arranged in a grid of 4 columns and 2 rows with lots of white space between them, white background, no text, no effects, no ground, no shadow.
+Frames (left to right, top to bottom):
+1. ready stance: exactly the attached pose
+2. wind-up: crouching a little, star sword and emperor spear pulled back
+3. deep crouch: crouching very low, gathering all its strength
+4. leap: springing forward into the air, star sword and emperor spear raised high
+5. strike: slashing down hard with the star sword, full extension
+6. follow-through: landing after the slash, weapons still forward
+7. special move start: rising with the star sword and the emperor spear crossed overhead
+8. special move impact: striking down with both weapons at once
+Strike in the direction the character is facing; if it faces the viewer, strike toward the right side of the image.
+```
