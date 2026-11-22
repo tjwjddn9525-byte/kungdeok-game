@@ -7,7 +7,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.AlertDialog
+
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,7 +26,7 @@ fun GiftDialog(opened: Gift?, onOpen: () -> Unit, onClose: () -> Unit) {
     val wiggle by rememberInfiniteTransition(label = "gift").animateFloat(
         -8f, 8f, infiniteRepeatable(tween(180), RepeatMode.Reverse), label = "wiggle",
     )
-    AlertDialog(
+    InlineDialog(
         onDismissRequest = { if (opened != null) onClose() },
         title = { Text(if (opened == null) "오늘의 선물이 도착했어요!" else "선물을 열었어요", fontWeight = FontWeight.Bold) },
         text = {

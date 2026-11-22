@@ -13,7 +13,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.AlertDialog
+
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
@@ -81,7 +81,7 @@ fun DexScreen(state: GameState) {
     }
 
     selected?.let { form ->
-        AlertDialog(
+        InlineDialog(
             onDismissRequest = { selected = null },
             confirmButton = { TextButton(onClick = { selected = null }) { Text("닫기") } },
             title = { Text(form.monName, fontWeight = FontWeight.Bold) },

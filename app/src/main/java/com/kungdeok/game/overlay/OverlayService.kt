@@ -22,6 +22,10 @@ import com.kungdeok.game.KungdeokApp
 import com.kungdeok.game.MainActivity
 import com.kungdeok.game.Notifications
 import com.kungdeok.game.R
+import com.kungdeok.game.ui.Target
+import androidx.savedstate.SavedStateRegistry
+import androidx.savedstate.SavedStateRegistryController
+import androidx.savedstate.SavedStateRegistryOwner
 import com.kungdeok.game.StepTracker
 import com.kungdeok.game.DawnAlarm
 import com.kungdeok.game.logic.epochDay
@@ -37,7 +41,17 @@ import kotlinx.coroutines.launch
  * 화면 위에 두 마리를 띄우는 포그라운드 서비스 (SPEC 8).
  * 알림창에 숨기기/보이기 버튼이 있고, 화면이 꺼지면 애니메이션을 멈춘다.
  */
-class OverlayService : LifecycleService(), CatOverlayCallbacks {
+class OverlayService : LifecycleService(), CatOverlayCallbacks, SavedStateRegistryOwner {
+
+    // 오버레이 메뉴 창(Compose)이 저장 상태를 쓸 수 있게 서비스가 SavedStateRegistryOwner 노릇을 한다.
+    private val savedStateController = SavedStateRegistryController.create(this)
+    override val savedStateRegistry: SavedStateRegistry get() = savedStateController.savedStateRegistry
+
+    /** 고양이를 톡 하면 여는 메뉴 창 */
+    private var panel: QuickPanel? = null
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    /** 두 번 톡톡을 기다리는 중인 첫 번째 톡 */
+    private var pendingTap: Pair<CatId?, Runnable>? = null
 
     private val repo by lazy { (application as KungdeokApp).repository }
     private lateinit var settings: OverlaySettings
@@ -58,14 +72,9 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
     private val allViews: List<CatOverlay> get() = cats.values + listOfNotNull(fusionView)
     private val activeViews: List<CatOverlay> get() = if (fused) listOfNotNull(fusionView) else cats.values.toList()
 
-    /** 쿵덕몬을 톡 하면 두 마리 모두 쓰다듬기 */
+    /** 쿵덕몬: 톡 = 메뉴 (둘 다 대상), 톡톡 = 두 마리 모두 쓰다듬기 */
     private val fusionCallbacks = object : CatOverlayCallbacks {
-        override fun onTap(cat: CatId) {
-            lifecycleScope.launch {
-                val outcome = repo.care(CatId.entries, CareAction.PET)
-                if (outcome.results.values.any { it is CareResult.Done }) fusionView?.showHeart()
-            }
-        }
+        override fun onTap(cat: CatId) = handleTap(null)
 
         override fun onLongPress(cat: CatId) = this@OverlayService.onLongPress(cat)
     }
@@ -100,6 +109,8 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
     }
 
     override fun onCreate() {
+        savedStateController.performAttach()
+        savedStateController.performRestore(null)
         super.onCreate()
         settings = OverlaySettings(this)
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -176,6 +187,8 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
     }
 
     override fun onDestroy() {
+        pendingTap?.let { handler.removeCallbacks(it.second) }
+        panel?.close()
         if (cats.isNotEmpty()) steps.stop()
         pause()
         hideCats()
@@ -282,18 +295,59 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
 
     // ---- 터치 ----
 
-    override fun onTap(cat: CatId) {
+    /**
+     * 톡 한 번: 메뉴 창 열기 (누른 고양이를 돌봄 대상으로)
+     * 톡톡 두 번: 바로 쓰다듬기
+     */
+    override fun onTap(cat: CatId) = handleTap(cat)
+
+    private fun handleTap(cat: CatId?) {
+        val p = pendingTap
+        if (p != null && p.first == cat) {
+            handler.removeCallbacks(p.second)
+            pendingTap = null
+            pet(cat)
+            return
+        }
+        p?.let { handler.removeCallbacks(it.second) }
+        val r = Runnable {
+            pendingTap = null
+            openPanel(cat)
+        }
+        pendingTap = cat to r
+        handler.postDelayed(r, DOUBLE_TAP_MS)
+    }
+
+    /** [cat] 이 null 이면 합체한 쿵덕몬 (둘 다) */
+    private fun pet(cat: CatId?) {
         lifecycleScope.launch {
+            if (cat == null) {
+                val outcome = repo.care(CatId.entries, CareAction.PET)
+                if (outcome.results.values.any { it is CareResult.Done }) fusionView?.showHeart()
+                return@launch
+            }
             val outcome = repo.care(listOf(cat), CareAction.PET)
             outcome.jealous?.let { cats[it]?.showTempBubble("흥") }
-            val result = outcome.results[cat]
             val view = cats[cat] ?: return@launch
-            when (result) {
+            when (outcome.results[cat]) {
                 is CareResult.Done -> view.showHeart()
                 CareResult.Asleep -> view.showTempBubble("쿨쿨…")
                 else -> Unit
             }
         }
+    }
+
+    private fun openPanel(cat: CatId?) {
+        val controller = (application as KungdeokApp).controller
+        val p = panel ?: QuickPanel(this, wm, this, controller) {
+            onLongPress(CatId.KUNG)
+        }.also { panel = it }
+        val target = when (cat) {
+            CatId.KUNG -> Target.KUNG
+            CatId.NODEOK -> Target.NODEOK
+            null -> Target.BOTH
+        }
+        p.open(target)
     }
 
     override fun onLongPress(cat: CatId) {
@@ -318,7 +372,7 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
         return NotificationCompat.Builder(this, Notifications.CHANNEL_OVERLAY)
             .setSmallIcon(R.drawable.ic_stat_paw)
             .setContentTitle(if (hidden) "쿵과 노덕이 숨어 있어요" else "쿵과 노덕이 화면 위에 있어요")
-            .setContentText("톡: 쓰다듬기 · 꾹: 게임 열기 · 드래그: 옮기기")
+            .setContentText("톡: 메뉴 · 톡톡: 쓰다듬기 · 꾹: 게임 열기 · 드래그: 옮기기")
             .setContentIntent(Notifications.openAppIntent(this))
             .setOngoing(true)
             .setSilent(true)
@@ -355,6 +409,7 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks {
 
     companion object {
         private const val NOTIFICATION_ID = 1
+        private const val DOUBLE_TAP_MS = 280L
         const val ACTION_TOGGLE = "com.kungdeok.game.overlay.TOGGLE"
         const val ACTION_STOP = "com.kungdeok.game.overlay.STOP"
 

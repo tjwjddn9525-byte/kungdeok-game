@@ -50,19 +50,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kungdeok.game.ui.KungdeokTheme
+import com.kungdeok.game.ui.GameApp
 import com.kungdeok.game.ui.MainViewModel
 import com.kungdeok.game.ui.RoomScreen
 import com.kungdeok.game.ui.StatusScreen
 import com.kungdeok.game.ui.Target
-
-enum class Tab(val label: String, val icon: String) {
-    ROOM("방", "🏠"),
-    STATUS("상태", "📊"),
-    DEX("도감", "📖"),
-    TOWER("캣타워", "🗼"),
-    SHOP("상점", "🛒"),
-    SETTINGS("설정", "⚙️"),
-}
 
 class MainActivity : ComponentActivity() {
     private val vm: MainViewModel by viewModels()
@@ -71,7 +63,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        setContent { KungdeokTheme { App(vm) } }
+        setContent { KungdeokTheme { GameApp(vm.controller) } }
         // 알림(진화 알림, 숨기기 버튼)과 걸음 수 권한을 한 번에 묻는다.
         val wanted = buildList {
             if (Build.VERSION.SDK_INT >= 33 && !Notifications.canPost(this@MainActivity)) {
@@ -105,100 +97,3 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
-private fun App(vm: MainViewModel) {
-    val state by vm.state.collectAsStateWithLifecycle()
-    val now by vm.now.collectAsStateWithLifecycle()
-    var tab by rememberSaveable { mutableStateOf(Tab.ROOM) }
-    var target by rememberSaveable { mutableStateOf(Target.BOTH) }
-    val snackbar = remember { SnackbarHostState() }
-    val evolution by vm.evolution.collectAsStateWithLifecycle()
-    val fusion by vm.fusion.collectAsStateWithLifecycle()
-    val battle by vm.battle.collectAsStateWithLifecycle()
-    val careAnim by vm.careAnim.collectAsStateWithLifecycle()
-    val reward by vm.reward.collectAsStateWithLifecycle()
-    // 권한 화면에서 돌아올 때마다 다시 확인한다.
-    val context = LocalContext.current
-    val lifecycle by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
-    val canDrawOverlays = remember(lifecycle) { OverlaySettings.canDrawOverlays(context) }
-    val notificationsAllowed = remember(lifecycle) { Notifications.canPost(context) }
-
-    LaunchedEffect(Unit) {
-        vm.messages.collect {
-            snackbar.currentSnackbarData?.dismiss()
-            snackbar.showSnackbar(it)
-        }
-    }
-
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbar) },
-        bottomBar = {
-            NavigationBar {
-                Tab.entries.forEach { t ->
-                    NavigationBarItem(
-                        selected = tab == t,
-                        onClick = { tab = t },
-                        icon = { Text(t.icon) },
-                        label = { Text(t.label) },
-                    )
-                }
-            }
-        },
-    ) { padding ->
-        val s = state
-        Box(Modifier.fillMaxSize().padding(padding)) {
-            if (s == null) {
-                CircularProgressIndicator(Modifier.align(Alignment.Center))
-            } else {
-                when (tab) {
-                    Tab.ROOM -> {
-                        // 합체 중에는 돌봄이 두 마리 모두에게 간다.
-                        val t = if (s.game.isFused(now)) Target.BOTH else target
-                        RoomScreen(s, now, t, { target = it }, { vm.care(t.cats, it) }, careAnim) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                EvolveButtons(s) { vm.evolve(it) }
-                                if (FusionRules.block(s, now, vm.today()) == null) {
-                                    Button(onClick = vm::fuse, modifier = Modifier.padding(4.dp)) {
-                                        Text("💫 합체! (하루 한 번, 30분)")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Tab.STATUS -> StatusScreen(s, now, vm::useBag)
-                    Tab.TOWER -> TowerScreen(
-                        s, now, battle, reward, vm::startBattle, vm::battleAction, vm::leaveBattle,
-                        alreadyPlayed = battle?.let { vm.battlePlayed(it) } ?: false,
-                        onPlayed = vm::markBattlePlayed,
-                    )
-                    Tab.SHOP -> ShopScreen(s, vm::buy, vm::togglePlace, vm::toggleWear)
-                    Tab.DEX -> DexScreen(s)
-                    Tab.SETTINGS -> SettingsScreen(canDrawOverlays, notificationsAllowed)
-                }
-            }
-        }
-    }
-
-    // 하루 한 번 앱을 열면 선물 상자 (SPEC 5-2)
-    val gift by vm.gift.collectAsStateWithLifecycle()
-    val s = state
-    if (gift != null || (s != null && evolution == null && fusion == null && DailyRules.giftAvailable(s.game, vm.today()))) {
-        GiftDialog(gift, vm::openGift, vm::closeGift)
-    }
-
-    evolution?.let { EvolutionScreen(it, vm::evolutionShown) }
-    fusion?.let { FusionScreen(it, vm::fusionShown) }
-}
-
-@Composable
-private fun EvolveButtons(state: GameState, onEvolve: (CatId) -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        for (id in CatId.entries) {
-            val cat = state.cat(id)
-            if (!cat.evolutionReady) continue
-            Button(onClick = { onEvolve(id) }, modifier = Modifier.padding(4.dp)) {
-                Text("✨ ${Form.of(id, cat.stage).monName}이 진화할 수 있어요! 진화하기")
-            }
-        }
-    }
-}
