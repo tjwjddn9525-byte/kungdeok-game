@@ -29,3 +29,10 @@ fun rememberSprite(path: String): ImageBitmap {
     val context = LocalContext.current
     return remember(path) { Sprites.bitmap(context, path).asImageBitmap() }
 }
+
+/** 없을 수도 있는 그림 (프레임 등) */
+@Composable
+fun rememberSpriteOrNull(path: String): ImageBitmap? {
+    val context = LocalContext.current
+    return remember(path) { Sprites.bitmapOrNull(context, path)?.asImageBitmap() }
+}

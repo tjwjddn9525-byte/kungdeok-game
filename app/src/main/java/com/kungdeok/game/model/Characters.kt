@@ -50,6 +50,12 @@ enum class Form(
     val largeAsset: String get() = "large/$asset"
     val smallAsset: String get() = "small/$asset"
 
+    /** 전투 무대용 큰 프레임: walk1, walk2, sleep */
+    fun largeFrameAsset(frame: String): String = "large/" + asset.removeSuffix(".png") + "_$frame.png"
+
+    /** 그림이 왼쪽을 보고 있는 형태 (전투에서 적 쪽인 오른쪽을 보게 뒤집는다) */
+    val facesLeft: Boolean get() = this == KUNG_3 || this == NODEOK_3
+
     /** 오버레이 애니메이션 프레임: walk1, walk2, sleep */
     fun frameAsset(frame: String): String = "small/" + asset.removeSuffix(".png") + "_$frame.png"
 

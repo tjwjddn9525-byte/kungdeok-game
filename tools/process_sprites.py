@@ -126,6 +126,17 @@ def make_frames(name: str, clean: Image.Image, small_px: int):
                     img = flipped
                     print(f"  {name}_{frame}: 방향 뒤집음")
             img.save(OUT_SMALL / f"{name}_{frame}.png", optimize=True)
+            # 전투 무대용 큰 프레임 (sprites/large, 원래 그림 큰 버전과 같은 키)
+            base_large = fit(clean, LARGE_SIZE, Image.LANCZOS)
+            big = trim(remove_background(Image.open(drawn[frame])))
+            ls = base_large.height / w1.height
+            big = big.resize((max(1, round(big.width * ls)), max(1, round(big.height * ls))), Image.LANCZOS)
+            # 원래 그림과 반대쪽을 보면 뒤집기 (작은 프레임과 같은 기준)
+            if frame != "sleep":
+                flipped_big = big.transpose(Image.FLIP_LEFT_RIGHT)
+                if mask_iou(flipped_big, base_large) > mask_iou(big, base_large) + 0.02:
+                    big = flipped_big
+            big.save(OUT_LARGE / f"{name}_{frame}.png", optimize=True)
             continue
         if frame == "sleep":
             img = sleep_frame(clean)

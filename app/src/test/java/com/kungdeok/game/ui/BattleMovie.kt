@@ -32,7 +32,7 @@ class BattleMovie {
                     now = 1000L, battle = b, reward = null, onStart = {}, onAction = {}, onLeave = {})
             }
         }
-        paparazzi.gif(view, name = name, start = 0, end = 4000, fps = 10)
+        paparazzi.gif(view, name = name, start = 0, end = 4200, fps = 12)
     }
 
     @Test fun attack() = record(BattleAction.ATTACK, "attack")
