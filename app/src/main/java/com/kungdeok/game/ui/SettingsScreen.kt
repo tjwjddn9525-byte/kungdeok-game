@@ -87,7 +87,7 @@ fun SettingsScreen(canDrawOverlays: Boolean, notificationsAllowed: Boolean) {
                 }) { Text("권한 허용하러 가기") }
             }
             Text(
-                "톡: 메뉴 창 (앱 화면 전체를 여기서) · 톡톡: 쓰다듬기 · 꾹: 앱 열기 · 드래그: 옮기기\n알림창의 숨기기/보이기 버튼으로 잠깐 숨길 수 있어요.",
+                "톡: 머리 위 돌봄 메뉴 · 꾹: 앱 열기 · 드래그: 옮기기\n알림창의 숨기기/보이기 버튼으로 잠깐 숨길 수 있어요.",
                 fontSize = 12.sp,
                 color = Color.Gray,
             )

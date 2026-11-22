@@ -52,6 +52,8 @@ data class Script(
 interface CatOverlayCallbacks {
     fun onTap(cat: CatId)
     fun onLongPress(cat: CatId)
+    /** 끌어서 옮기기 시작 (떠 있는 메뉴를 닫는다) */
+    fun onDragStart(cat: CatId) {}
 }
 
 /**
@@ -257,12 +259,20 @@ class CatOverlay(
 
     // ---- 감독(OverlayService)용 ----
     val centerX: Float get() = x + viewW / 2f
+    /** 창 위쪽 y (말풍선 자리 포함) */
+    val windowY: Float get() = y
+    /** 그림(몸) 위쪽 y. 메뉴를 이보다 위에 띄워서 고양이를 가리지 않는다. */
+    val spriteTopY: Float get() = y + viewH - spriteSizePx
+    val windowBottomY: Float get() = y + viewH
+
+    /** 메뉴가 떠 있는 동안 제자리에 앉아 있게 한다. */
+    var held = false
     val widthPx: Int get() = viewW
     val behaviorNow: Behavior get() = behavior
     val isAsleep: Boolean get() = asleep
 
     /** 연출 중이거나 사람이 만지는 중이면 바쁨 */
-    val isBusy: Boolean get() = scripts.isNotEmpty() || dragging || falling
+    val isBusy: Boolean get() = scripts.isNotEmpty() || dragging || falling || held
 
     /** 가운데 x 좌표가 [cx] 가 되는 창 x 위치 (화면 안으로 제한) */
     fun windowXFor(cx: Float): Float = (cx - viewW / 2f).coerceIn(0f, (screenW - viewW).toFloat().coerceAtLeast(0f))
@@ -335,6 +345,10 @@ class CatOverlay(
     }
 
     private fun think(dt: Float) {
+        if (held) {
+            behavior = if (asleep) Behavior.NAP else Behavior.SIT
+            return
+        }
         if (scripts.isNotEmpty() && runScript(dt)) return
         if (asleep) {
             behavior = Behavior.NAP
@@ -604,7 +618,9 @@ class CatOverlay(
                 if (!dragging && !longPressed && (abs(dx) > touchSlop || abs(dy) > touchSlop)) {
                     dragging = true
                     falling = false
+                    held = false
                     cancelScripts()
+                    callbacks.onDragStart(cat)
                     removeCallbacks(longPressRunnable)
                 }
                 if (dragging) {
