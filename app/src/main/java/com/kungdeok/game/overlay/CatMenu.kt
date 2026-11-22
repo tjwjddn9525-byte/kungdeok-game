@@ -246,6 +246,7 @@ class CatMenu(
                         val ready = left <= 0 && !sleeping
                         MenuButton(
                             icon = action.icon,
+                            asset = Art.care(action),
                             label = shortLabel(action),
                             sub = when {
                                 sleeping -> "자는 중"
@@ -259,7 +260,7 @@ class CatMenu(
                             onAction(cat, action)
                         }
                     }
-                    MenuButton("🏠", "앱 열기", null, true, Modifier.weight(1f)) {
+                    MenuButton("🏠", "앱 열기", null, true, Modifier.weight(1f), asset = Art.TAB_ROOM) {
                         close()
                         onOpenApp()
                     }
@@ -295,6 +296,7 @@ private fun MenuButton(
     sub: String?,
     enabled: Boolean,
     modifier: Modifier,
+    asset: String? = null,
     onClick: () -> Unit,
 ) {
     Column(
@@ -309,7 +311,7 @@ private fun MenuButton(
             Modifier.size(34.dp).clip(RoundedCornerShape(17.dp)).background(Color.White).graphicsLayer { alpha = if (enabled) 1f else 0.35f },
             contentAlignment = Alignment.Center,
         ) {
-            ArtIcon(icon, 24.dp)
+            ArtIcon(icon, 26.dp, asset = asset ?: Art.asset(icon))
         }
         if (sub != null) {
             Text(sub, fontSize = 10.sp, color = Color(0xFFB0662E), fontWeight = FontWeight.Bold, maxLines = 1)

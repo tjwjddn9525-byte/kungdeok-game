@@ -56,13 +56,13 @@ import com.kungdeok.game.ui.Target
 
 import com.kungdeok.game.Notifications
 
-enum class Tab(val label: String, val icon: String) {
-    ROOM("방", "🏠"),
-    STATUS("상태", "📊"),
-    DEX("도감", "📖"),
-    TOWER("캣타워", "🗼"),
-    SHOP("상점", "🛒"),
-    SETTINGS("설정", "⚙️"),
+enum class Tab(val label: String, val icon: String, val asset: String) {
+    ROOM("방", "🏠", "ui/tab_room.png"),
+    STATUS("상태", "📊", "ui/tab_status.png"),
+    DEX("도감", "📖", "ui/tab_dex.png"),
+    TOWER("캣타워", "🗼", "ui/tab_tower.png"),
+    SHOP("상점", "🛒", "ui/tab_shop.png"),
+    SETTINGS("설정", "⚙️", "ui/tab_settings.png"),
 }
 
 /**
@@ -103,7 +103,7 @@ fun GameApp(vm: GameController, initialTarget: Target = Target.BOTH, modifier: M
                     NavigationBarItem(
                         selected = tab == t,
                         onClick = { tab = t },
-                        icon = { Text(t.icon) },
+                        icon = { ArtIcon(t.icon, 28.dp, asset = t.asset) },
                         label = { Text(t.label) },
                     )
                 }

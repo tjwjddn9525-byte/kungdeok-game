@@ -17,7 +17,8 @@
 ## 전체 목록 (체크리스트)
 
 > 보스 6마리는 한 장(`bosses_sheet.png`, 3열×2행: 빗자루·로봇청소기·드라이기 / 강아지·목욕통·가방)으로 받아도 됩니다.
-> 받은 그림 정리: `python3 tools/process_ui.py` → `sprites/ui/`
+> 받은 그림 정리: `python3 tools/process_ui.py` → `sprites/ui/`, 캐릭터 프레임 시트(`raw/ui/frames_<형태>.png`)는 `raw/<형태>_walk1.png` 등으로 잘림
+> → `python3 tools/process_sprites.py` 가 크기(원래 그림 키)와 방향(원래 그림과 같은 쪽)을 맞춰 `sprites/small/` 로
 
 지금 앱에서 이모지·단색 도형으로 대신하거나 프로그램이 자동으로 만든 그림을 모두 모았습니다.
 **우선순위**: ★★★ 화면에서 제일 많이 보임 → ★ 있으면 좋음
@@ -29,8 +30,8 @@
 | 3 | `furniture_sheet.png` | 가구 5개 | 방, 상점 | 📦🪴🧺🪵🖼️ 이모지 | ★★ |✅ |
 | 4 | `accessories_sheet.png` | 꾸미기 5개 | 고양이 머리 위, 상점 | 🎀🔔🌸🕶️👑 이모지 | ★★ |✅ |
 | 5 | `items_sheet.png` | 아이템 6개 (밥·간식·털실·빗·선물·코인) | 상점, 가방, 돌봄 장면 소품, 선물 상자, 골드 표시 | 🍚🍤🧶🪮🎁🪙 이모지 | ★★ |✅ |
-| 6 | `care_icons_sheet.png` | 돌봄 버튼 6개 | 방 돌봄 버튼, 화면 위 고양이 메뉴 | 🤚🍚🍤🧶🪮🌙 이모지 | ★★★ | ☐ |
-| 7 | `tab_icons_sheet.png` | 탭 6개 | 아래 탭 바 | 🏠📊📖🗼🛒⚙️ 이모지 | ★ | ☐ |
+| 6 | `care_icons_sheet.png` | 돌봄 버튼 6개 | 방 돌봄 버튼, 화면 위 고양이 메뉴 | 🤚🍚🍤🧶🪮🌙 이모지 | ★★★ |✅ |
+| 7 | `tab_icons_sheet.png` | 탭 6개 | 아래 탭 바 | 🏠📊📖🗼🛒⚙️ 이모지 | ★ |✅ |
 | 8 | `mobs_sheet.png` | 바탕화면 잡몹 6마리 | 바탕화면 사냥 | 🐭🪰🦗🐞🕷️🦋 이모지 | ★★★ |✅ |
 | 9 | `enemies_sheet.png` | 캣타워 일반 적 8마리 | 캣타워 | 🐭🪰🐦🦎🕷️🐦‍⬛🧦👻 이모지 | ★★★ |✅ |
 | 10 | `boss_broom.png` | 보스: 빗자루 대장 (5층) | 캣타워 | 🧹 | ★★ |✅ |
@@ -42,23 +43,23 @@
 | 16 | `effects_sheet.png` | 효과 8개 | 전투 💥⭐💫, 돌봄 ✨❤, 잠 z, 먼지 | 이모지·동그라미 | ★★ |✅ |
 | 17 | `app_icon.png` | 앱 아이콘 | 폰 홈 화면 | 콩덕몬 그림 잘라 씀 | ★ |✅ |
 | 18 | `status_icons_sheet.png` | 상태 아이콘 4개 (배고픔·기분·청결·졸림) | 상태 막대, 화면 위 메뉴 | 🍚😊🫧💤 이모지 | ★ |✅ |
-| 19 | `<캐릭터 파일 이름>_walk1.png` 등 | 캐릭터 걷기 2장 + 잠자기 1장 × 11형태 = 33장 | 화면 위 고양이 걷기·잠 | 원래 그림을 기울이고 눌러서 자동 생성 | ★★ (형태마다) | ☐ |
+| 19 | `<캐릭터 파일 이름>_walk1.png` 등 | 캐릭터 걷기 2장 + 잠자기 1장 × 11형태 = 33장 | 화면 위 고양이 걷기·잠 | 원래 그림을 기울이고 눌러서 자동 생성 | ★★ (형태마다) |✅ |
 
 19번은 `raw/ui/`가 아니라 **`raw/`** 폴더에 올립니다 (예: `raw/kung_1_somkungmon_walk1.png`). 지금 키우는 형태부터 하면 됩니다.
 
 | 형태 | walk1 | walk2 | sleep |
 |---|---|---|---|
-| kung_1_somkungmon (솜쿵몬) | ☐ | ☐ | ☐ |
-| kung_2_kungnyangmon (쿵냥몬) | ☐ | ☐ | ☐ |
-| kung_3_galgikungmon (갈기쿵몬) | ☐ | ☐ | ☐ |
-| kung_4_sajakungmon (사자쿵몬) | ☐ | ☐ | ☐ |
-| kung_5_eunhakungmon (은하쿵몬) | ☐ | ☐ | ☐ |
-| nodeok_1_kongdeokmon (콩덕몬) | ☐ | ☐ | ☐ |
-| nodeok_2_nodeokmon (노덕몬) | ☐ | ☐ | ☐ |
-| nodeok_3_mukjikdeokmon (묵직덕몬) | ☐ | ☐ | ☐ |
-| nodeok_4_gureumdeokmon (구름덕몬) | ☐ | ☐ | ☐ |
-| nodeok_5_deokhwangmon (덕황몬) | ☐ | ☐ | ☐ |
-| fusion_kungdeokmon (쿵덕몬) | ☐ | ☐ | ☐ |
+| kung_1_somkungmon (솜쿵몬) | ✅ | ✅ | ✅ |
+| kung_2_kungnyangmon (쿵냥몬) | ✅ | ✅ | ✅ |
+| kung_3_galgikungmon (갈기쿵몬) | ✅ | ✅ | ✅ |
+| kung_4_sajakungmon (사자쿵몬) | ✅ | ✅ | ✅ |
+| kung_5_eunhakungmon (은하쿵몬) | ✅ | ✅ | ✅ |
+| nodeok_1_kongdeokmon (콩덕몬) | ✅ | ✅ | ✅ |
+| nodeok_2_nodeokmon (노덕몬) | ✅ | ✅ | ✅ |
+| nodeok_3_mukjikdeokmon (묵직덕몬) | ✅ | ✅ | ✅ |
+| nodeok_4_gureumdeokmon (구름덕몬) | ✅ | ✅ | ✅ |
+| nodeok_5_deokhwangmon (덕황몬) | ✅ | ✅ | ✅ |
+| fusion_kungdeokmon (쿵덕몬) | ✅ | ✅ | ✅ |
 
 ---
 

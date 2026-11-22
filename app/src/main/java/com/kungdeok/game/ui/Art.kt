@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import com.kungdeok.game.logic.MobType
+import com.kungdeok.game.logic.CareAction
 
 /**
  * 픽셀 아트 에셋 (raw/ui → tools/process_ui.py → sprites/ui).
@@ -40,6 +41,20 @@ object Art {
     fun asset(emoji: String): String? = byEmoji[emoji]?.let { "ui/$it.png" }
 
     fun mob(type: MobType): String = "ui/mob_${type.name.lowercase()}.png"
+
+    /** 돌봄 버튼 아이콘 */
+    fun care(action: CareAction): String = "ui/care_${
+        when (action) {
+            CareAction.PET -> "pet"
+            CareAction.FEED -> "feed"
+            CareAction.SNACK -> "snack"
+            CareAction.PLAY -> "play"
+            CareAction.BRUSH -> "brush"
+            CareAction.SLEEP -> "sleep"
+        }
+    }.png"
+
+    const val TAB_ROOM = "ui/tab_room.png"
 }
 
 /** 그림이 있으면 그림, 없으면 이모지 글자 */

@@ -426,7 +426,7 @@ private fun CarePanel(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                ArtIcon(action.icon, 22.dp)
+                                ArtIcon(action.icon, 26.dp, asset = Art.care(action))
                                 Text(" ${action.label}", fontSize = 14.sp, textAlign = TextAlign.Center)
                             }
                             val sub = when {

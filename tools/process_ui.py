@@ -44,7 +44,14 @@ SHEETS = {
         "fx_dust", "fx_sparkle", "fx_heart", "fx_sleep",
     ]),
     "status_icons_sheet": (4, 1, ["status_hunger", "status_mood", "status_clean", "status_sleep"]),
+    "care_icons_sheet": (3, 2, ["care_pet", "care_feed", "care_snack", "care_play", "care_brush", "care_sleep"]),
+    "tab_icons_sheet": (3, 2, ["tab_room", "tab_status", "tab_dex", "tab_tower", "tab_shop", "tab_settings"]),
 }
+
+# 캐릭터 프레임 시트: raw/ui/frames_<형태>.png (걷기1·걷기2·잠자기 한 줄) → raw/<형태>_walk1.png 등 (원본 크기 그대로)
+# 크기 맞추기와 방향 맞추기는 tools/process_sprites.py 가 한다.
+FRAME_NAMES = ["walk1", "walk2", "sleep"]
+RAW_CHAR = ROOT / "raw"
 
 # 바깥과 이어지지 않은 흰 구멍 (목걸이 고리 안쪽 등): 잘라 낸 그림에서 이 비율 위치를 투명하게 채운다
 HOLES = {"acc_bell": [(0.5, 0.3)]}
@@ -92,7 +99,7 @@ def label(mask: np.ndarray):
     return labels, comps
 
 
-def split_sheet(name: str, cols: int, rows: int, names):
+def split_sheet(name: str, cols: int, rows: int, names, out_dir: Path = OUT, max_size: int = SIZE):
     img = remove_background(Image.open(RAW / f"{name}.png"))
     w, h = img.size
     alpha = np.array(img)[..., 3] > 0
@@ -132,11 +139,50 @@ def split_sheet(name: str, cols: int, rows: int, names):
             r, g, b, a = p.getpixel(seed)
             if a > 0 and min(r, g, b) > 200:
                 ImageDraw.floodfill(p, seed, (0, 0, 0, 0), thresh=WHITE_THRESH)
-        s = SIZE / max(p.size)
+        s = max_size / max(p.size)
         if s < 1:
             p = p.resize((max(1, round(p.width * s)), max(1, round(p.height * s))), Image.LANCZOS)
-        p.save(OUT / f"{out_name}.png", optimize=True)
+        p.save(out_dir / f"{out_name}.png", optimize=True)
         print(f"  {out_name}: {p.size}")
+
+
+def split_frames(name: str, names, out_dir: Path):
+    """캐릭터 프레임 시트(한 줄 세 칸)는 그림끼리 망토·날개가 붙어 있을 수 있어서,
+    1/3·2/3 지점 근처에서 불투명한 픽셀이 가장 적은 세로줄을 찾아 자른다."""
+    img = remove_background(Image.open(RAW / f"{name}.png"))
+    arr = np.array(img)
+    w = arr.shape[1]
+    cols = (arr[..., 3] > 0).sum(axis=0)
+    cuts = [0]
+    for k in (1, 2):
+        lo, hi = int(w * (k / 3 - 0.12)), int(w * (k / 3 + 0.12))
+        window = cols[lo:hi]
+        best = np.flatnonzero(window == window.min())
+        cuts.append(lo + int(best[len(best) // 2]))
+    cuts.append(w)
+    for i, out_name in enumerate(names):
+        sub = arr[:, cuts[i]:cuts[i + 1]].copy()
+        # 자른 곳에 걸려 들어온 옆 그림 조각(꼬리 끝 등)은 버린다: 자른 테두리에 닿는 작은 덩어리
+        small = sub[::LOW, ::LOW, 3] > 0
+        labels, comps = label(small)
+        if comps:
+            biggest = max(c["area"] for c in comps)
+            sw = small.shape[1]
+            drop = [
+                c["idx"] for c in comps
+                if c["area"] < biggest * 0.08 and (c["bbox"][0] <= 1 or c["bbox"][2] >= sw - 2)
+            ]
+            if drop:
+                # 남길 덩어리 둘레만 살리고 나머지는 지운다 (저해상도 경계의 얇은 찌꺼기까지)
+                keep_ids = [c["idx"] for c in comps if c["idx"] not in drop]
+                keep = np.repeat(np.repeat(np.isin(labels, keep_ids), LOW, 0), LOW, 1)[:sub.shape[0], :sub.shape[1]]
+                keep = keep | np.roll(keep, LOW, 0) | np.roll(keep, -LOW, 0) | np.roll(keep, LOW, 1) | np.roll(keep, -LOW, 1)
+                sub[~keep] = 0
+        piece = Image.fromarray(sub)
+        bbox = piece.getchannel("A").getbbox()
+        piece = piece.crop(bbox)
+        piece.save(out_dir / f"{out_name}.png", optimize=True)
+        print(f"  {out_name}: {piece.size}  (자른 곳 겹침 {int(cols[cuts[i]]) if i else 0})")
 
 
 def remove_watermark(img: Image.Image) -> Image.Image:
@@ -150,12 +196,23 @@ def remove_watermark(img: Image.Image) -> Image.Image:
     return out
 
 
-def main():
+def main(only=None):
+    """[only] 가 있으면 이름에 그 글자가 들어간 것만 다시 만든다 (예: frames, care)"""
     OUT.mkdir(parents=True, exist_ok=True)
     for name, (cols, rows, names) in SHEETS.items():
+        if only and only not in name:
+            continue
         if (RAW / f"{name}.png").exists():
             print(name)
             split_sheet(name, cols, rows, names)
+    for sheet in sorted(RAW.glob("frames_*.png")):
+        if only and only not in sheet.stem:
+            continue
+        form = sheet.stem.removeprefix("frames_")
+        print(sheet.stem)
+        split_frames(sheet.stem, [f"{form}_{f}" for f in FRAME_NAMES], RAW_CHAR)
+    if only:
+        return
     for name, out_name in BACKGROUNDS.items():
         src = RAW / f"{name}.png"
         if src.exists():
@@ -173,4 +230,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    main(sys.argv[1] if len(sys.argv) > 1 else None)

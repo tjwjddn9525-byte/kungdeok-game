@@ -94,18 +94,45 @@ def sleep_frame(img: Image.Image) -> Image.Image:
     return out
 
 
+def mask_iou(a: Image.Image, b: Image.Image) -> float:
+    """두 그림의 실루엣(불투명한 곳)이 얼마나 겹치는지"""
+    import numpy as np
+    size = (64, 64)
+    ma = np.array(a.resize(size, Image.NEAREST).getchannel("A")) > 0
+    mb = np.array(b.resize(size, Image.NEAREST).getchannel("A")) > 0
+    return (ma & mb).sum() / max(1, (ma | mb).sum())
+
+
 def make_frames(name: str, clean: Image.Image, small_px: int):
+    base_scale = small_px / max(clean.size)
+    base_small = fit(clean, small_px, Image.NEAREST)
+    drawn = {f: RAW / f"{name}_{f}.png" for f in FRAMES if (RAW / f"{name}_{f}.png").exists()}
+
+    # 직접 그린 프레임: 서 있는 키(걷기1)가 원래 그림과 같아지도록 한 시트 전체를 같은 비율로 줄인다
+    drawn_scale = None
+    if "walk1" in drawn:
+        w1 = trim(remove_background(Image.open(drawn["walk1"])))
+        drawn_scale = base_small.height / w1.height
+
     for frame in FRAMES:
-        drawn = RAW / f"{name}_{frame}.png"
-        if drawn.exists():
-            img = trim(remove_background(Image.open(drawn)))
-        elif frame == "sleep":
+        if frame in drawn and drawn_scale is not None:
+            img = trim(remove_background(Image.open(drawn[frame])))
+            size = (max(1, round(img.width * drawn_scale)), max(1, round(img.height * drawn_scale)))
+            img = img.resize(size, Image.LANCZOS)
+            # 걷기 프레임이 원래 그림과 반대쪽을 보고 있으면 뒤집는다 (프레임이 바뀔 때 홱 돌지 않게)
+            if frame != "sleep":
+                flipped = img.transpose(Image.FLIP_LEFT_RIGHT)
+                if mask_iou(flipped, base_small) > mask_iou(img, base_small) + 0.02:
+                    img = flipped
+                    print(f"  {name}_{frame}: 방향 뒤집음")
+            img.save(OUT_SMALL / f"{name}_{frame}.png", optimize=True)
+            continue
+        if frame == "sleep":
             img = sleep_frame(clean)
         else:
             img = walk_frame(clean, 1 if frame == "walk1" else -1)
         # 기본 그림과 같은 비율로 줄여야 프레임이 바뀔 때 크기가 튀지 않는다.
-        scale = small_px / max(clean.size)
-        size = (max(1, round(img.width * scale)), max(1, round(img.height * scale)))
+        size = (max(1, round(img.width * base_scale)), max(1, round(img.height * base_scale)))
         img.resize(size, Image.NEAREST).save(OUT_SMALL / f"{name}_{frame}.png", optimize=True)
 
 
