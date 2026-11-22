@@ -166,7 +166,11 @@ private fun App(vm: MainViewModel) {
                         }
                     }
                     Tab.STATUS -> StatusScreen(s, now, vm::useBag)
-                    Tab.TOWER -> TowerScreen(s, now, battle, reward, vm::startBattle, vm::battleAction, vm::leaveBattle)
+                    Tab.TOWER -> TowerScreen(
+                        s, now, battle, reward, vm::startBattle, vm::battleAction, vm::leaveBattle,
+                        alreadyPlayed = battle?.let { vm.battlePlayed(it) } ?: false,
+                        onPlayed = vm::markBattlePlayed,
+                    )
                     Tab.SHOP -> ShopScreen(s, vm::buy, vm::togglePlace, vm::toggleWear)
                     Tab.DEX -> DexScreen(s)
                     Tab.SETTINGS -> SettingsScreen(canDrawOverlays, notificationsAllowed)

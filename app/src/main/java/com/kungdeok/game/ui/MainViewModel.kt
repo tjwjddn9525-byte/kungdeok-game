@@ -107,11 +107,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val (b, block) = repo.startBattle(floor)
             if (b != null) {
                 _reward.value = null
-                _battle.value = b
+                _battle.value = b.copy(id = System.nanoTime())
             } else if (block != null) {
                 _messages.emit(block)
             }
         }
+    }
+
+    /** 이미 장면을 다 튼 턴 (탭을 옮겼다 와도 다시 틀지 않게) */
+    private var playedKey = ""
+    fun battlePlayed(b: Battle): Boolean = playedKey == "${b.id}/${b.turn}"
+    fun markBattlePlayed() {
+        _battle.value?.let { playedKey = "${it.id}/${it.turn}" }
     }
 
     fun battleAction(action: BattleAction) {

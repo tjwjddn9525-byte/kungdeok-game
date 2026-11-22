@@ -29,6 +29,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -56,9 +59,11 @@ fun TowerScreen(
     onStart: (Int) -> Unit,
     onAction: (BattleAction) -> Unit,
     onLeave: () -> Unit,
+    alreadyPlayed: Boolean = false,
+    onPlayed: () -> Unit = {},
 ) {
     if (battle != null) {
-        BattleView(battle, reward, state.game.snack, onAction, onLeave)
+        BattleView(battle, reward, state.game.snack, alreadyPlayed, onPlayed, onAction, onLeave)
     } else {
         TowerLobby(state, now, onStart)
     }
@@ -118,15 +123,12 @@ private fun BattleView(
     b: Battle,
     reward: Reward?,
     snacks: Int,
+    alreadyPlayed: Boolean,
+    onPlayed: () -> Unit,
     onAction: (BattleAction) -> Unit,
     onLeave: () -> Unit,
 ) {
-    // 적이 맞으면 흔들린다
-    val shake = remember { Animatable(0f) }
-    LaunchedEffect(b.enemy.hp) {
-        shake.snapTo(14f)
-        shake.animateTo(0f, tween(300))
-    }
+    var playing by remember { mutableStateOf(false) }
     Column(
         Modifier
             .fillMaxSize()
@@ -134,46 +136,37 @@ private fun BattleView(
             .padding(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("🗼 ${b.floor}층  ${b.turn}턴", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("🗼 ${b.floor}층  ${b.enemy.name}${if (b.enemy.boss) " 👑" else ""}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
             Spacer(Modifier.weight(1f))
-            if (b.result == null) TextButton(onClick = onLeave) { Text("도망가기", color = Color(0xFFFFB4AB)) }
+            if (b.result == null && !playing) TextButton(onClick = onLeave) { Text("도망가기", color = Color(0xFFFFB4AB)) }
         }
 
-        // 적
-        Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                b.enemy.icon,
-                fontSize = if (b.enemy.boss) 96.sp else 80.sp,
-                modifier = Modifier.graphicsLayer {
-                    translationX = shake.value * (if (b.turn % 2 == 0) 1 else -1)
-                    alpha = if (b.enemy.alive) 1f else 0.25f
-                },
-            )
-            Text("${b.enemy.name}${if (b.enemy.boss) " 👑" else ""}", color = Color.White, fontSize = 16.sp)
-            HpBar(b.enemy.hp, b.enemy.maxHp, Color(0xFFE57373), Modifier.fillMaxWidth(0.7f))
-        }
-
-        // 우리 편
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            FighterCard(b.kung, Modifier.weight(1f))
-            FighterCard(b.nodeok, Modifier.weight(1f))
-        }
+        // 아래쪽 마루에서 실제로 싸우는 무대
+        BattleStage(
+            b,
+            alreadyPlayed = alreadyPlayed,
+            onPlaying = {
+                playing = it
+                if (!it) onPlayed()
+            },
+            modifier = Modifier.weight(1f),
+        )
 
         // 기록
         Column(
             Modifier
                 .fillMaxWidth()
-                .weight(1f)
                 .padding(vertical = 8.dp)
                 .background(Color(0x33000000), RoundedCornerShape(8.dp))
                 .padding(8.dp),
         ) {
-            b.log.takeLast(6).forEachIndexed { i, line ->
-                Text(line, color = Color.White.copy(alpha = if (i == b.log.takeLast(6).lastIndex) 1f else 0.7f), fontSize = 13.sp)
+            val recent = b.log.takeLast(3)
+            recent.forEachIndexed { i, line ->
+                Text(line, color = Color.White.copy(alpha = if (i == recent.lastIndex) 1f else 0.65f), fontSize = 13.sp, maxLines = 1)
             }
         }
 
-        if (b.result != null) {
+        if (b.result != null && !playing) {
             ResultCard(b.result, reward, onLeave)
         } else {
             val actions = listOf(
@@ -187,7 +180,7 @@ private fun BattleView(
                     row.forEach { (a, label) ->
                         Button(
                             onClick = { onAction(a) },
-                            enabled = BattleRules.canUse(b, a, snacks),
+                            enabled = !playing && b.result == null && BattleRules.canUse(b, a, snacks),
                             modifier = Modifier.weight(1f).height(52.dp),
                             contentPadding = PaddingValues(4.dp),
                             colors = ButtonDefaults.buttonColors(
@@ -204,37 +197,6 @@ private fun BattleView(
 }
 
 private fun cd(f: Fighter) = if (f.skillCooldown > 0) " (${f.skillCooldown})" else ""
-
-@Composable
-private fun FighterCard(f: Fighter, modifier: Modifier) {
-    val gray = remember { ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) }) }
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.fillMaxWidth(0.6f).aspectRatio(1f)) {
-            Image(
-                rememberSprite(f.form.largeAsset),
-                f.form.monName,
-                Modifier.fillMaxSize().graphicsLayer { alpha = if (f.alive) 1f else 0.4f },
-                colorFilter = if (f.alive) null else gray,
-            )
-        }
-        Text("${f.form.monName}  공격 ${f.atk}", color = Color.White, fontSize = 12.sp)
-        HpBar(f.hp, f.maxHp, Color(0xFF81C784), Modifier.fillMaxWidth())
-    }
-}
-
-@Composable
-private fun HpBar(hp: Int, max: Int, color: Color, modifier: Modifier) {
-    Column(modifier) {
-        LinearProgressIndicator(
-            progress = { hp.toFloat() / max },
-            modifier = Modifier.fillMaxWidth().height(10.dp),
-            color = color,
-            trackColor = Color(0x55FFFFFF),
-            drawStopIndicator = {},
-        )
-        Text("$hp / $max", color = Color.White, fontSize = 11.sp)
-    }
-}
 
 @Composable
 private fun ResultCard(result: BattleResult, reward: Reward?, onLeave: () -> Unit) {

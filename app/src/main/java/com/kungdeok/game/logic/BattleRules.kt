@@ -23,6 +23,18 @@ data class Enemy(val name: String, val icon: String, val maxHp: Int, val hp: Int
 
 enum class BattleAction { ATTACK, KUNG_SKILL, NODEOK_SKILL, SNACK }
 
+/** 한 턴에 일어난 일. 전투 화면이 이 순서대로 장면을 튼다. hp 값은 그 일이 끝난 뒤의 체력. */
+sealed interface BattleEvent {
+    data class CatHit(val cat: CatId, val dmg: Int, val skill: Boolean, val enemyHp: Int) : BattleEvent
+    data class Heal(val cat: CatId, val amount: Int, val hp: Int) : BattleEvent
+    data class EnemyHit(val target: CatId, val dmg: Int, val hp: Int) : BattleEvent
+    /** 노덕 기술로 적이 기절 */
+    data object Stunned : BattleEvent
+    /** 기절해서 반격 못 함 */
+    data object EnemyDazed : BattleEvent
+    data object EnemyDown : BattleEvent
+}
+
 enum class BattleResult { WIN, LOSE }
 
 data class Battle(
@@ -34,6 +46,10 @@ data class Battle(
     val enemyStunned: Boolean = false,
     val log: List<String> = emptyList(),
     val result: BattleResult? = null,
+    /** 방금 턴에 일어난 일 (장면 재생용) */
+    val events: List<BattleEvent> = emptyList(),
+    /** 전투 하나를 구별하는 번호 (화면 재생 기록용) */
+    val id: Long = 0,
 ) {
     fun fighter(id: CatId) = if (id == CatId.KUNG) kung else nodeok
     fun withFighter(f: Fighter) = if (f.cat == CatId.KUNG) copy(kung = f) else copy(nodeok = f)
@@ -110,14 +126,16 @@ object BattleRules {
         if (battle.result != null) return battle
         var b = battle
         val log = mutableListOf<String>()
+        val events = mutableListOf<BattleEvent>()
         var enemy = b.enemy
         var stun = false
 
-        fun hit(f: Fighter, mult: Double, verb: String) {
+        fun hit(f: Fighter, mult: Double, verb: String, skill: Boolean = false) {
             if (!f.alive || !enemy.alive) return
             val d = roll(f.atk, mult, random)
             enemy = enemy.copy(hp = (enemy.hp - d).coerceAtLeast(0))
             log += "${f.form.monName}의 $verb! $d 데미지"
+            events += BattleEvent.CatHit(f.cat, d, skill, enemy.hp)
         }
 
         when (action) {
@@ -126,23 +144,28 @@ object BattleRules {
                 hit(b.nodeok, 1.0, "냥냥펀치")
             }
             BattleAction.KUNG_SKILL -> {
-                hit(b.kung, 2.5, b.kung.form.skill)
+                hit(b.kung, 2.5, b.kung.form.skill, skill = true)
                 hit(b.nodeok, 1.0, "냥냥펀치")
                 b = b.withFighter(b.kung.copy(skillCooldown = SKILL_COOLDOWN + 1))
             }
             BattleAction.NODEOK_SKILL -> {
-                hit(b.nodeok, 1.5, b.nodeok.form.skill)
-                hit(b.kung, 1.0, "냥냥펀치")
+                hit(b.nodeok, 1.5, b.nodeok.form.skill, skill = true)
                 stun = enemy.alive
-                if (stun) log += "${enemy.name}이(가) 꼼짝 못 한다!"
+                if (stun) {
+                    log += "${enemy.name}이(가) 꼼짝 못 한다!"
+                    events += BattleEvent.Stunned
+                }
+                hit(b.kung, 1.0, "냥냥펀치")
                 b = b.withFighter(b.nodeok.copy(skillCooldown = SKILL_COOLDOWN + 1))
             }
             BattleAction.SNACK -> {
                 val target = listOf(b.kung, b.nodeok).filter { it.alive }.minByOrNull { it.hp.toDouble() / it.maxHp }
                 if (target != null) {
                     val heal = (target.maxHp * 0.4).roundToInt()
-                    b = b.withFighter(target.copy(hp = (target.hp + heal).coerceAtMost(target.maxHp)))
+                    val healed = target.copy(hp = (target.hp + heal).coerceAtMost(target.maxHp))
+                    b = b.withFighter(healed)
                     log += "🍤 간식을 먹은 ${target.form.monName}, 체력 +$heal"
+                    events += BattleEvent.Heal(target.cat, heal, healed.hp)
                 }
             }
         }
@@ -150,18 +173,21 @@ object BattleRules {
 
         if (!enemy.alive) {
             log += "${enemy.icon} ${enemy.name}을(를) 물리쳤다!"
-            return b.copy(log = (b.log + log).takeLast(12), result = BattleResult.WIN)
+            events += BattleEvent.EnemyDown
+            return b.copy(log = (b.log + log).takeLast(12), result = BattleResult.WIN, events = events, turn = b.turn + 1)
         }
 
         // 적의 반격
         if (b.enemyStunned) {
             log += "${enemy.name}은(는) 아직 정신을 못 차렸다."
+            events += BattleEvent.EnemyDazed
         } else {
             val targets = listOf(b.kung, b.nodeok).filter { it.alive }
             val t = targets[random.nextInt(targets.size)]
             val d = roll(enemy.atk, if (t.cat == CatId.NODEOK) 0.7 else 1.0, random)
             val nt = t.copy(hp = (t.hp - d).coerceAtLeast(0))
             b = b.withFighter(nt)
+            events += BattleEvent.EnemyHit(t.cat, d, nt.hp)
             log += "${enemy.icon} ${enemy.name}의 공격! ${t.form.monName} -$d" + if (!nt.alive) " (쓰러졌다…)" else ""
         }
 
@@ -174,7 +200,7 @@ object BattleRules {
         )
         val result = if (!b.kung.alive && !b.nodeok.alive) BattleResult.LOSE else null
         if (result == BattleResult.LOSE) log += "둘 다 지쳐 버렸다… 다음에 다시 도전하자."
-        return b.copy(log = (b.log + log).takeLast(12), result = result)
+        return b.copy(log = (b.log + log).takeLast(12), result = result, events = events)
     }
 
     /** 이긴 층의 보상. 처음 깬 층이면 전부, 다시 깬 층이면 절반. */
