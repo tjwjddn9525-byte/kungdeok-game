@@ -23,6 +23,7 @@ import com.kungdeok.game.model.CatId
 import com.kungdeok.game.model.Form
 import com.kungdeok.game.model.Stage
 import com.kungdeok.game.ui.Sprites
+import com.kungdeok.game.ui.Art
 import kotlin.math.abs
 import kotlin.math.sin
 import kotlin.random.Random
@@ -89,6 +90,11 @@ class CatOverlay(
     private var messy = false
     private var sizeScale = 1f
     private var accessoryIcon: String? = null
+    private var accessoryArt: Bitmap? = null
+    private val heartArt: Bitmap? = Sprites.bitmapOrNull(context, "ui/fx_heart.png")
+    private val dustArt: Bitmap? = Sprites.bitmapOrNull(context, "ui/fx_dust.png")
+    private val artPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    private val artRect = RectF()
     /** 방에 박스가 놓여 있으면 화면 위에서도 가끔 박스에 들어간다. */
     var hasBox = false
     private var happy = false
@@ -243,6 +249,7 @@ class CatOverlay(
             return
         }
         accessoryIcon = ShopItem.byId(state.accessory)?.icon
+        accessoryArt = accessoryIcon?.let { e -> Art.asset(e)?.let { Sprites.bitmapOrNull(context, it) } }
         happy = state.mood >= 60
         bubble = StatusRules.bubble(state, now)
         asleep = state.isAsleep(now)
@@ -541,11 +548,20 @@ class CatOverlay(
         }
 
         val top = dstRect.top
-        accessoryIcon?.let {
-            val tw = accessoryPaint.measureText(it)
-            canvas.drawText(it, cx - tw / 2, top + dp(10f), accessoryPaint)
+        val acc = accessoryArt
+        if (acc != null) {
+            drawArt(canvas, acc, cx, top + dp(2f), dp(18f))
+        } else {
+            accessoryIcon?.let {
+                val tw = accessoryPaint.measureText(it)
+                canvas.drawText(it, cx - tw / 2, top + dp(10f), accessoryPaint)
+            }
         }
-        if (messy) canvas.drawText("💨", dstRect.right - dp(14f), top + dp(14f), effectPaint)
+        if (messy) {
+            val d = dustArt
+            if (d != null) drawArt(canvas, d, dstRect.right - dp(8f), top + dp(6f), dp(18f))
+            else canvas.drawText("💨", dstRect.right - dp(14f), top + dp(14f), effectPaint)
+        }
         if (behavior == Behavior.NAP && !dragging) {
             val zx = cx + dw * 0.25f
             val phase = (time % 2f) / 2f
@@ -557,7 +573,14 @@ class CatOverlay(
                 val phase = (effectTime % 1.4f) / 1.4f
                 heartPaint.alpha = (255 * (1 - phase * 0.7f)).toInt()
                 val side = if (facingRight) 1 else -1
-                canvas.drawText("♥", cx + side * dw * 0.3f, top + dp(12f) - phase * dp(16f), heartPaint)
+                val h = heartArt
+                if (h != null) {
+                    artPaint.alpha = heartPaint.alpha
+                    drawArt(canvas, h, cx + side * dw * 0.3f, top + dp(6f) - phase * dp(16f), dp(14f))
+                    artPaint.alpha = 255
+                } else {
+                    canvas.drawText("♥", cx + side * dw * 0.3f, top + dp(12f) - phase * dp(16f), heartPaint)
+                }
             }
             Effect.DUST -> {
                 // 투닥거림: 발치에 먼지구름이 들썩인다
@@ -572,10 +595,21 @@ class CatOverlay(
         }
         if (heartTime > 0) {
             val rise = (1.2f - heartTime) * dp(18f)
-            canvas.drawText("❤", cx - dp(8f), top - rise + dp(6f), effectPaint)
+            val h = heartArt
+            if (h != null) drawArt(canvas, h, cx, top - rise, dp(20f))
+            else canvas.drawText("❤", cx - dp(8f), top - rise + dp(6f), effectPaint)
         }
         val text = tempBubble ?: bubble?.takeIf { it != "Zzz…" }
         if (text != null) drawBubble(canvas, text, cx, top - dp(4f))
+    }
+
+    /** 그림을 가운데 (cx, cy), 긴 변 [size] 로 그린다 */
+    private fun drawArt(canvas: Canvas, bmp: Bitmap, cx: Float, cy: Float, size: Float) {
+        val s = size / maxOf(bmp.width, bmp.height)
+        val w = bmp.width * s
+        val h = bmp.height * s
+        artRect.set(cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
+        canvas.drawBitmap(bmp, null, artRect, artPaint)
     }
 
     private fun drawBox(canvas: Canvas, cx: Float, bottom: Float, w: Float, h: Float) {

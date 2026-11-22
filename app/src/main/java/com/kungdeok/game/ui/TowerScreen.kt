@@ -97,7 +97,7 @@ private fun TowerLobby(state: GameState, now: Long, onStart: (Int) -> Unit) {
             val r = BattleRules.reward(floor, best)
             Card(colors = CardDefaults.cardColors(containerColor = if (floor == best + 1) Color(0xFFFFF1D6) else Color(0xFFFFF9F1))) {
                 Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(e.icon, fontSize = 34.sp)
+                    ArtIcon(e.icon, 52.dp, asset = e.asset)
                     Spacer(Modifier.padding(6.dp))
                     Column(Modifier.weight(1f)) {
                         Text(

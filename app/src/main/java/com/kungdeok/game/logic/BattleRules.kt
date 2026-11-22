@@ -17,7 +17,16 @@ data class Fighter(
     val alive: Boolean get() = hp > 0
 }
 
-data class Enemy(val name: String, val icon: String, val maxHp: Int, val hp: Int, val atk: Int, val boss: Boolean) {
+data class Enemy(
+    val name: String,
+    val icon: String,
+    val maxHp: Int,
+    val hp: Int,
+    val atk: Int,
+    val boss: Boolean,
+    /** 픽셀 아트 그림 (sprites/ui) */
+    val asset: String? = null,
+) {
     val alive: Boolean get() = hp > 0
 }
 
@@ -65,22 +74,25 @@ object BattleRules {
     const val ENTRY_COST = 8.0
 
     private val normals = listOf(
-        "생쥐" to "🐭", "왕파리" to "🪰", "참새" to "🐦", "도마뱀" to "🦎",
-        "거미" to "🕷️", "까마귀" to "🐦‍⬛", "뒤집힌 양말" to "🧦", "비닐봉지 유령" to "👻",
+        Triple("생쥐", "🐭", "enemy_mouse"), Triple("왕파리", "🪰", "enemy_fly"),
+        Triple("참새", "🐦", "enemy_sparrow"), Triple("도마뱀", "🦎", "enemy_lizard"),
+        Triple("거미", "🕷️", "enemy_spider"), Triple("까마귀", "🐦‍⬛", "enemy_crow"),
+        Triple("뒤집힌 양말", "🧦", "enemy_sock"), Triple("비닐봉지 유령", "👻", "enemy_ghost"),
     )
     private val bosses = listOf(
-        "빗자루 대장" to "🧹", "로봇청소기" to "🤖", "드라이기" to "💨",
-        "옆집 강아지" to "🐕", "목욕통" to "🛁", "동물병원 가방" to "🧳",
+        Triple("빗자루 대장", "🧹", "boss_broom"), Triple("로봇청소기", "🤖", "boss_robot_vacuum"),
+        Triple("드라이기", "💨", "boss_hair_dryer"), Triple("옆집 강아지", "🐕", "boss_neighbor_dog"),
+        Triple("목욕통", "🛁", "boss_bathtub"), Triple("동물병원 가방", "🧳", "boss_vet_carrier"),
     )
 
     fun isBoss(floor: Int) = floor % BOSS_EVERY == 0
 
     fun enemy(floor: Int): Enemy {
         val boss = isBoss(floor)
-        val (name, icon) = if (boss) {
+        val (name, icon, art) = if (boss) {
             val i = floor / BOSS_EVERY - 1
             val round = i / bosses.size
-            bosses[i % bosses.size].let { (n, ic) -> (if (round > 0) "강화 $n" else n) to ic }
+            bosses[i % bosses.size].let { (n, ic, a) -> Triple(if (round > 0) "강화 $n" else n, ic, a) }
         } else {
             normals[(floor - 1) % normals.size]
         }
@@ -90,7 +102,7 @@ object BattleRules {
             hp *= 2
             atk *= 1.3
         }
-        return Enemy(name, icon, hp, hp, atk.roundToInt(), boss)
+        return Enemy(name, icon, hp, hp, atk.roundToInt(), boss, "ui/$art.png")
     }
 
     /** 컨디션(평균 상태)이 좋을수록 세다: 공격력 x0.7 ~ x1.0 */

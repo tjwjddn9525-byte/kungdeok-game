@@ -45,7 +45,11 @@ fun ShopScreen(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
-            Text("🛒 상점   🪙 ${g.gold}", fontWeight = FontWeight.Bold, fontSize = 20.sp, modifier = Modifier.padding(4.dp))
+            Row(Modifier.padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("🛒 상점   ", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                ArtIcon("🪙", 24.dp)
+                Text(" ${g.gold}", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            }
             Text(
                 "골드는 매일 선물, 1만 보 걷기, 캣타워에서 모을 수 있어요.",
                 fontSize = 12.sp,
@@ -60,7 +64,7 @@ fun ShopScreen(
                 Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9F1))) {
                     Column(Modifier.fillMaxWidth().padding(12.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(item.icon, fontSize = 32.sp)
+                            ArtIcon(item.icon, 48.dp)
                             Spacer(Modifier.width(10.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(item.label, fontWeight = FontWeight.Bold, fontSize = 15.sp)
@@ -73,7 +77,8 @@ fun ShopScreen(
                                 Text("보유", color = Color(0xFF5BAA6A), fontWeight = FontWeight.Bold)
                             } else {
                                 Button(onClick = { onBuy(item) }, enabled = g.gold >= item.price) {
-                                    Text("🪙 ${item.price}")
+                                    ArtIcon("🪙", 16.dp)
+                                    Text(" ${item.price}")
                                 }
                             }
                         }

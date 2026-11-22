@@ -14,6 +14,10 @@ import android.view.View
 import android.view.WindowManager
 import com.kungdeok.game.logic.MobMove
 import com.kungdeok.game.logic.MobType
+import com.kungdeok.game.ui.Art
+import com.kungdeok.game.ui.Sprites
+import android.graphics.Bitmap
+import android.graphics.RectF
 import kotlin.math.abs
 import kotlin.math.sin
 import kotlin.random.Random
@@ -94,6 +98,22 @@ class MobOverlay(
     private val flyBottom: Float get() = groundBottom - dp(110f)
 
     private val emojiPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = mobSize }
+    /** 픽셀 아트 그림 (없으면 이모지). 그림은 왼쪽을 보고 있다. */
+    private val art: Bitmap? = Sprites.bitmapOrNull(context, Art.mob(type))
+    private val hitArt: Bitmap? = Sprites.bitmapOrNull(context, "ui/fx_hit.png")
+    private val sparkleArt: Bitmap? = Sprites.bitmapOrNull(context, "ui/fx_sparkle.png")
+    private val artPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    private val artRect = RectF()
+
+    private fun drawArt(canvas: Canvas, bmp: Bitmap, cx: Float, cy: Float, size: Float, alpha: Int = 255) {
+        val s = size / maxOf(bmp.width, bmp.height)
+        val w = bmp.width * s
+        val h = bmp.height * s
+        artRect.set(cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
+        artPaint.alpha = alpha
+        canvas.drawBitmap(bmp, null, artRect, artPaint)
+        artPaint.alpha = 255
+    }
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#FFE082"); textSize = dp(14f); typeface = Typeface.DEFAULT_BOLD
         setShadowLayer(dp(2f), 0f, 0f, Color.parseColor("#5A3A28"))
@@ -308,9 +328,15 @@ class MobOverlay(
             canvas.translate(shake, -bob)
             if (vx > 0 && type.move != MobMove.DROP) canvas.scale(-1f, 1f, cx, cy)
             canvas.scale(1f, flap, cx, cy)
-            emojiPaint.alpha = if (flashLeft > 0 && (time * 30).toInt() % 2 == 0) 90 else 255
-            val tw = emojiPaint.measureText(type.icon)
-            canvas.drawText(type.icon, cx - tw / 2, cy + mobSize * 0.35f, emojiPaint)
+            val blink = if (flashLeft > 0 && (time * 30).toInt() % 2 == 0) 90 else 255
+            val a = art
+            if (a != null) {
+                drawArt(canvas, a, cx, cy, mobSize * 1.35f, blink)
+            } else {
+                emojiPaint.alpha = blink
+                val tw = emojiPaint.measureText(type.icon)
+                canvas.drawText(type.icon, cx - tw / 2, cy + mobSize * 0.35f, emojiPaint)
+            }
             canvas.restore()
 
             if (state == State.FROZEN || state == State.LANDING) {
@@ -318,7 +344,12 @@ class MobOverlay(
             }
         } else {
             // 쓰러뜨림: 💥 → 별
-            if (textTime < 0.35f) {
+            val hit = hitArt
+            val sparkle = sparkleArt
+            if (hit != null && sparkle != null) {
+                if (textTime < 0.35f) drawArt(canvas, hit, cx, cy, mobSize * (0.8f + textTime * 2.6f))
+                else drawArt(canvas, sparkle, cx, cy, mobSize * 1.2f, (255 * (1 - (textTime - 0.35f) / 1.05f)).toInt().coerceIn(0, 255))
+            } else if (textTime < 0.35f) {
                 val s = 0.6f + textTime * 2f
                 emojiPaint.textSize = mobSize * s
                 val tw = emojiPaint.measureText("💥")

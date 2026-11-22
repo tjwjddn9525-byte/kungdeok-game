@@ -62,7 +62,8 @@ private fun BagCard(state: GameState, onUse: (CatId, ShopItem) -> Unit) {
             for (item in ShopItem.entries.filter { it.kind == ShopKind.CONSUMABLE }) {
                 val n = ShopRules.bagCount(state.game, item)
                 Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("${item.icon} ${item.label} ${n}개", Modifier.weight(1f), fontSize = 14.sp)
+                    ArtIcon(item.icon, 24.dp, Modifier.padding(end = 6.dp))
+                    Text("${item.label} ${n}개", Modifier.weight(1f), fontSize = 14.sp)
                     for (id in CatId.entries) {
                         TextButton(onClick = { onUse(id, item) }, enabled = n > 0) { Text("${id.catName}에게") }
                     }
@@ -125,10 +126,10 @@ private fun CatCard(id: CatId, cat: CatEntity, now: Long) {
             Spacer(Modifier.height(12.dp))
             val need = ExpRules.expToNext(cat.level)
             Bar("Lv.${cat.level}  경험치 ${formatExp(cat.exp)} / $need", (cat.exp / need).toFloat(), Color(0xFF7C5CC4))
-            Bar("배고픔", cat.hunger.toFloat() / 100f, Color(0xFFE39B4B))
-            Bar("기분", cat.mood.toFloat() / 100f, HeartPink)
-            Bar("청결", cat.cleanliness.toFloat() / 100f, Color(0xFF4BA3C7))
-            Bar("졸림", cat.sleepiness.toFloat() / 100f, Color(0xFF6C7FB8))
+            Bar("배고픔", cat.hunger.toFloat() / 100f, Color(0xFFE39B4B), Art.STATUS_HUNGER)
+            Bar("기분", cat.mood.toFloat() / 100f, HeartPink, Art.STATUS_MOOD)
+            Bar("청결", cat.cleanliness.toFloat() / 100f, Color(0xFF4BA3C7), Art.STATUS_CLEAN)
+            Bar("졸림", cat.sleepiness.toFloat() / 100f, Color(0xFF6C7FB8), Art.STATUS_SLEEP)
             Spacer(Modifier.height(8.dp))
             val req = EvolutionRules.requirement(cat.stage)
             Text(
@@ -145,9 +146,10 @@ private fun CatCard(id: CatId, cat: CatEntity, now: Long) {
 }
 
 @Composable
-private fun Bar(label: String, fraction: Float, color: Color) {
+private fun Bar(label: String, fraction: Float, color: Color, icon: String? = null) {
     Column(Modifier.padding(vertical = 4.dp)) {
-        Row(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) ArtIcon("", 18.dp, Modifier.padding(end = 4.dp), asset = icon)
             Text(label, fontSize = 13.sp)
             Spacer(Modifier.weight(1f))
             if (!label.startsWith("Lv")) Text("${(fraction * 100).toInt()}", fontSize = 13.sp)

@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.runtime.LaunchedEffect
@@ -132,12 +134,12 @@ private fun RoomFurniture(placed: Set<String>, inBox: CatEntity?) {
         fun item(id: String, x: Float, y: Float, size: Int) {
             val shop = ShopItem.byId(id) ?: return
             if (id !in placed) return
-            Text(shop.icon, fontSize = size.sp, modifier = Modifier.offset(w * x, h * y))
+            ArtIcon(shop.icon, size.dp, Modifier.offset(w * x, h * y))
         }
-        item("picture", 0.06f, 0.10f, 40)
-        item("plant", 0.80f, 0.33f, 44)
-        item("scratcher", 0.04f, 0.36f, 40)
-        item("cushion", 0.40f, 0.48f, 40)
+        item("picture", 0.05f, 0.08f, 56)
+        item("plant", 0.80f, 0.36f, 60)
+        item("scratcher", 0.03f, 0.40f, 76)
+        item("cushion", 0.38f, 0.50f, 64)
         if ("box" in placed) {
             Box(Modifier.offset(w * 0.70f, h * 0.53f)) {
                 if (inBox != null) {
@@ -149,7 +151,7 @@ private fun RoomFurniture(placed: Set<String>, inBox: CatEntity?) {
                         filterQuality = FilterQuality.None,
                     )
                 }
-                Text("📦", fontSize = 52.sp)
+                ArtIcon("📦", 72.dp)
             }
         }
     }
@@ -167,23 +169,16 @@ fun boxSitter(state: GameState, now: Long): CatEntity? {
     return cat.takeIf { !it.isAsleep(now) && it.mood >= StatusRules.BUBBLE }
 }
 
-/** 벽의 창문과 바닥 러그 */
+/** 방 배경 그림 (벽·창문·바닥·러그). 방 칸 비율에 맞게 잘라서 바닥이 아래쪽에 오게 한다. */
 @Composable
 private fun RoomDecor() {
-    Canvas(Modifier.fillMaxSize()) {
-        val w = size.width
-        val h = size.height
-        val winW = w * 0.34f
-        val winH = h * 0.24f
-        val winX = w * 0.5f - winW / 2
-        val winY = h * 0.07f
-        drawRoundRect(Color(0xFF9C7A5B), Offset(winX - 8, winY - 8), Size(winW + 16, winH + 16), CornerRadius(10f))
-        drawRoundRect(Color(0xFFBFE3F5), Offset(winX, winY), Size(winW, winH), CornerRadius(6f))
-        drawLine(Color(0xFF9C7A5B), Offset(winX + winW / 2, winY), Offset(winX + winW / 2, winY + winH), 6f)
-        drawLine(Color(0xFF9C7A5B), Offset(winX, winY + winH / 2), Offset(winX + winW, winY + winH / 2), 6f)
-        drawOval(Color(0x33C0583A), Offset(w * 0.08f, h * 0.70f), Size(w * 0.84f, h * 0.24f))
-        drawOval(Color(0x22FFFFFF), Offset(w * 0.18f, h * 0.74f), Size(w * 0.64f, h * 0.16f))
-    }
+    Image(
+        rememberSprite(Art.BG_ROOM),
+        null,
+        Modifier.fillMaxSize(),
+        contentScale = ContentScale.Crop,
+        alignment = BiasAlignment(0f, 0.3f),
+    )
 }
 
 @Composable
@@ -192,10 +187,11 @@ private fun TopInfo(state: GameState) {
         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("🪙 ${state.game.gold}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        ArtIcon("🪙", 22.dp)
+        Text(" ${state.game.gold}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
         Spacer(Modifier.weight(1f))
         Text("사이좋음 ", fontSize = 14.sp)
-        Text("❤", color = HeartPink, fontSize = 18.sp)
+        ArtIcon("❤", 20.dp)
         Text(" ${state.game.friendship}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
         Text(
             " (${RelationshipRules.closeness(state.game.friendship).label})",
@@ -310,6 +306,23 @@ private fun RoomCat(
             )
             // 장면 소품: 밥그릇, 털실, 빗, "냠" 같은 글자
             for (prop in props) {
+                val propAsset = Art.asset(prop.text)
+                if (propAsset != null) {
+                    Image(
+                        rememberSprite(propAsset),
+                        null,
+                        Modifier
+                            .align(Alignment.BottomCenter)
+                            .size(with(density) { (prop.size * sizePx.width * 1.25f).coerceAtLeast(1f).toDp() })
+                            .graphicsLayer {
+                                translationX = prop.x * sizePx.width
+                                translationY = prop.y * sizePx.height
+                                rotationZ = prop.rot
+                                alpha = prop.alpha.coerceIn(0f, 1f)
+                            },
+                    )
+                    continue
+                }
                 Text(
                     prop.text,
                     Modifier
@@ -325,15 +338,15 @@ private fun RoomCat(
                     fontWeight = FontWeight.Bold,
                 )
             }
-            if (messy && !inBox && !playing) Text("💨", Modifier.align(Alignment.TopEnd), fontSize = 22.sp)
+            if (messy && !inBox && !playing) ArtIcon("💨", 30.dp, Modifier.align(Alignment.TopEnd))
             ShopItem.byId(cat.accessory)?.takeIf { !inBox }?.let {
-                Text(
+                ArtIcon(
                     it.icon,
+                    36.dp,
                     Modifier.align(Alignment.TopCenter).graphicsLayer {
                         translationX = pose.dx * sizePx.width
                         translationY = (if (playing) 0f else -bob) + pose.dy * sizePx.height
                     },
-                    fontSize = 26.sp,
                 )
             }
         }
@@ -389,7 +402,10 @@ private fun CarePanel(
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(4.dp),
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("${action.icon} ${action.label}", fontSize = 14.sp, textAlign = TextAlign.Center)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                ArtIcon(action.icon, 22.dp)
+                                Text(" ${action.label}", fontSize = 14.sp, textAlign = TextAlign.Center)
+                            }
                             val sub = when {
                                 sleeping -> "자는 중"
                                 left > 0 && action != CareAction.PET -> formatDuration(left)

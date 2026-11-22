@@ -1,5 +1,6 @@
 package com.kungdeok.game.ui
 
+import androidx.compose.ui.unit.dp
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -31,10 +32,14 @@ fun GiftDialog(opened: Gift?, onOpen: () -> Unit, onClose: () -> Unit) {
         title = { Text(if (opened == null) "오늘의 선물이 도착했어요!" else "선물을 열었어요", fontWeight = FontWeight.Bold) },
         text = {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    "🎁",
-                    fontSize = 72.sp,
-                    modifier = Modifier.graphicsLayer { rotationZ = if (opened == null) wiggle else 0f },
+                ArtIcon(
+                    when (opened) {
+                        null -> "🎁"
+                        is Gift.Gold -> "🪙"
+                        is Gift.Items -> opened.item.icon
+                    },
+                    96.dp,
+                    Modifier.graphicsLayer { rotationZ = if (opened == null) wiggle else 0f },
                 )
                 if (opened != null) {
                     Text(opened.describe(), fontSize = 22.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)

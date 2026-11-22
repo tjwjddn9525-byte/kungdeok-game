@@ -1,5 +1,6 @@
 package com.kungdeok.game.ui
 
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.FastOutLinearInEasing
@@ -255,34 +256,14 @@ fun BattleStage(
         // ---- 그리기 ----
         val shakeX = shake.value
         Box(Modifier.fillMaxSize().graphicsLayer { translationX = shakeX }) {
-            // 캣타워 안 배경: 달 뜬 창문, 벽 선반, 마루 판자
-            Canvas(Modifier.fillMaxSize()) {
-                val sw = size.width
-                val sh = size.height
-                val floorTop = sh * 0.7f
-                // 창문과 달
-                val winL = sw * 0.06f; val winT = sh * 0.08f; val winW = sw * 0.24f; val winH = sh * 0.3f
-                drawRect(Color(0xFF7A5A86), Offset(winL - 6f, winT - 6f), Size(winW + 12f, winH + 12f))
-                drawRect(Color(0xFF1E2A55), Offset(winL, winT), Size(winW, winH))
-                drawCircle(Color(0xFFFFF3B0), radius = winW * 0.16f, center = Offset(winL + winW * 0.68f, winT + winH * 0.32f))
-                drawLine(Color(0xFF7A5A86), Offset(winL + winW / 2, winT), Offset(winL + winW / 2, winT + winH), 5f)
-                drawLine(Color(0xFF7A5A86), Offset(winL, winT + winH / 2), Offset(winL + winW, winT + winH / 2), 5f)
-                for ((sx, sy) in listOf(0.2f to 0.2f, 0.35f to 0.7f, 0.12f to 0.8f)) {
-                    drawCircle(Color.White, 2.5f, Offset(winL + winW * sx, winT + winH * sy))
-                }
-                // 벽 선반 (캣타워 발판)
-                for ((x, y, len) in listOf(Triple(0.55f, 0.18f, 0.3f), Triple(0.68f, 0.42f, 0.26f), Triple(0.4f, 0.5f, 0.18f))) {
-                    drawRect(Color(0xFF9C6B47), Offset(sw * x, sh * y), Size(sw * len, sh * 0.025f))
-                    drawRect(Color(0x55000000), Offset(sw * x, sh * y + sh * 0.025f), Size(sw * len, sh * 0.012f))
-                }
-                // 기둥
-                drawRect(Color(0xFFC9A27A), Offset(sw * 0.93f, 0f), Size(sw * 0.035f, floorTop))
-                // 마루 판자
-                for (i in 1..4) {
-                    val y = floorTop + (sh - floorTop) * i / 5f
-                    drawLine(Color(0x33000000), Offset(0f, y), Offset(sw, y), 2f)
-                }
-            }
+            // 캣타워 안 배경 그림 (달 뜬 창문, 캣타워, 마루). 바닥이 아래쪽에 오게 아래 기준으로 자른다.
+            Image(
+                rememberSprite(Art.BG_TOWER),
+                null,
+                Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                alignment = Alignment.BottomCenter,
+            )
 
             for (id in CatId.entries) {
                 val f = b.fighter(id)
@@ -292,7 +273,7 @@ fun BattleStage(
                     centerX = baseX.getValue(id), ground = ground, size = catSize,
                 )
             }
-            EnemyActor(enemy, b.enemy.icon, hpEnemy, b.enemy.maxHp, enemyX, ground, enemySize, stunnedShown)
+            EnemyActor(enemy, b.enemy.icon, b.enemy.asset, hpEnemy, b.enemy.maxHp, enemyX, ground, enemySize, stunnedShown)
 
             for (f in fx) FxText(f)
 
@@ -374,7 +355,7 @@ private fun CatActor(a: Actor, asset: String, hp: Int, maxHp: Int, centerX: Floa
 }
 
 @Composable
-private fun EnemyActor(a: Actor, icon: String, hp: Int, maxHp: Int, centerX: Float, ground: Float, size: Float, stunned: Boolean) {
+private fun EnemyActor(a: Actor, icon: String, asset: String?, hp: Int, maxHp: Int, centerX: Float, ground: Float, size: Float, stunned: Boolean) {
     val density = LocalDensity.current
     val sizeDp = with(density) { size.toDp() }
     val fontSp = with(density) { (size * 0.8f).toSp() }
@@ -384,19 +365,21 @@ private fun EnemyActor(a: Actor, icon: String, hp: Int, maxHp: Int, centerX: Flo
             .size(sizeDp),
         contentAlignment = Alignment.BottomCenter,
     ) {
-        Text(
-            icon,
-            Modifier.graphicsLayer {
-                transformOrigin = TransformOrigin(0.5f, 1f)
-                translationX = a.x.value
-                translationY = a.y.value
-                rotationZ = a.rot.value
-                scaleX = a.sx.value
-                scaleY = a.sy.value
-                alpha = a.alpha.value
-            },
-            fontSize = fontSp,
-        )
+        val enemyLayer = Modifier.graphicsLayer {
+            transformOrigin = TransformOrigin(0.5f, 1f)
+            translationX = a.x.value
+            translationY = a.y.value
+            rotationZ = a.rot.value
+            scaleX = a.sx.value
+            scaleY = a.sy.value
+            alpha = a.alpha.value
+        }
+        if (asset != null) {
+            // 적 그림은 왼쪽(고양이 쪽)을 보고 있다
+            Image(rememberSprite(asset), icon, enemyLayer.fillMaxSize())
+        } else {
+            Text(icon, enemyLayer, fontSize = fontSp)
+        }
         if (a.flash.value > 0f) {
             Box(
                 Modifier
@@ -406,7 +389,7 @@ private fun EnemyActor(a: Actor, icon: String, hp: Int, maxHp: Int, centerX: Flo
             )
         }
         if (stunned && a.alpha.value > 0f) {
-            Text("💫", Modifier.align(Alignment.TopCenter).offset(y = (-6).dp), fontSize = 20.sp)
+            ArtIcon("💫", 40.dp, Modifier.align(Alignment.TopCenter).offset(y = (-14).dp))
         }
         if (a.alpha.value > 0f) {
             StageHpBar(hp, maxHp, Color(0xFFE57373), Modifier.align(Alignment.TopCenter).offset(y = (-16).dp).width(sizeDp))
@@ -430,6 +413,25 @@ private fun FxText(f: Fx) {
     val t = remember(f.id) { Animatable(0f) }
     LaunchedEffect(f.id) { t.animateTo(1f, tween(850)) }
     val density = LocalDensity.current
+    val fxAsset = Art.asset(f.text)
+    if (fxAsset != null) {
+        val sizeDp = (f.sizeSp * 1.5f).dp
+        Image(
+            rememberSprite(fxAsset),
+            null,
+            Modifier
+                .offset { IntOffset(f.x.roundToInt() - sizeDp.roundToPx() / 2, f.y.roundToInt()) }
+                .size(sizeDp)
+                .graphicsLayer {
+                    translationY = if (f.rise) -60f * t.value else 0f
+                    alpha = if (f.rise) 1f - t.value * 0.8f else 1f - t.value
+                    val s = if (f.rise) 1f + 0.3f * (1 - t.value) else 0.7f + 0.6f * t.value
+                    scaleX = s
+                    scaleY = s
+                },
+        )
+        return
+    }
     Text(
         f.text,
         Modifier

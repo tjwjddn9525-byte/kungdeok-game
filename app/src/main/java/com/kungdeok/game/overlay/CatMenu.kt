@@ -1,5 +1,7 @@
 package com.kungdeok.game.overlay
 
+import com.kungdeok.game.ui.Art
+import com.kungdeok.game.ui.ArtIcon
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.PixelFormat
@@ -224,10 +226,10 @@ class CatMenu(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(name, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Choco, maxLines = 1)
                     Row(Modifier.weight(1f).padding(start = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        MiniBar("🍚", cats.minOf { it.hunger }, Color(0xFFE39B4B))
-                        MiniBar("😊", cats.minOf { it.mood }, HeartPink)
-                        MiniBar("🫧", cats.minOf { it.cleanliness }, Color(0xFF4BA3C7))
-                        MiniBar("💤", cats.minOf { it.sleepiness }, Color(0xFF6C7FB8))
+                        MiniBar(Art.STATUS_HUNGER, cats.minOf { it.hunger }, Color(0xFFE39B4B))
+                        MiniBar(Art.STATUS_MOOD, cats.minOf { it.mood }, HeartPink)
+                        MiniBar(Art.STATUS_CLEAN, cats.minOf { it.cleanliness }, Color(0xFF4BA3C7))
+                        MiniBar(Art.STATUS_SLEEP, cats.minOf { it.sleepiness }, Color(0xFF6C7FB8))
                     }
                     Text(
                         "✕",
@@ -277,9 +279,9 @@ class CatMenu(
 }
 
 @Composable
-private fun MiniBar(icon: String, value: Double, color: Color) {
+private fun MiniBar(asset: String, value: Double, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(icon, fontSize = 9.sp)
+        ArtIcon("", 12.dp, asset = asset)
         Box(Modifier.width(18.dp).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFFE8DED2))) {
             Box(Modifier.fillMaxWidth((value / 100.0).toFloat().coerceIn(0f, 1f)).height(5.dp).background(color))
         }
@@ -307,7 +309,7 @@ private fun MenuButton(
             Modifier.size(34.dp).clip(RoundedCornerShape(17.dp)).background(Color.White).graphicsLayer { alpha = if (enabled) 1f else 0.35f },
             contentAlignment = Alignment.Center,
         ) {
-            Text(icon, fontSize = 18.sp)
+            ArtIcon(icon, 24.dp)
         }
         if (sub != null) {
             Text(sub, fontSize = 10.sp, color = Color(0xFFB0662E), fontWeight = FontWeight.Bold, maxLines = 1)
