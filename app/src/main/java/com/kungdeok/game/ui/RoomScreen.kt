@@ -124,24 +124,47 @@ fun RoomScreen(
     }
 }
 
-/** 상점에서 산 가구 (3단계). [inBox] 가 있으면 박스 안에 그 고양이가 들어가 있다. */
+/** 방 배경 그림의 크기와 바닥이 시작하는 높이 (걸레받이 바로 아래, 그림 높이의 58.2%) */
+private const val BG_W = 720f
+private const val BG_H = 1290f
+private const val BG_FLOOR = 0.582f
+/** RoomDecor 의 자르기 기준 (BiasAlignment 0.3 → 위에서 65% 지점) */
+private const val BG_BIAS = 0.65f
+
+/**
+ * 상점에서 산 가구 (3단계). [inBox] 가 있으면 박스 안에 그 고양이가 들어가 있다.
+ * 배경이 화면 비율에 따라 잘리는 만큼 바닥선 위치를 계산해서, 가구 아래쪽이 늘 바닥에 닿게 놓는다.
+ */
 @Composable
 private fun RoomFurniture(placed: Set<String>, inBox: CatEntity?) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val w = maxWidth
         val h = maxHeight
+        // ContentScale.Crop 과 같은 계산
+        val scale = maxOf(w.value / BG_W, h.value / BG_H)
+        val scaledH = BG_H * scale
+        val offsetY = (h.value - scaledH) * BG_BIAS
+        val floorY = offsetY + BG_FLOOR * scaledH
+
+        /** 바닥 위 [depth] (0 = 벽에 붙음, 1 = 화면 맨 아래) 에 아래쪽을 맞춘다 */
+        fun onFloor(x: Float, depth: Float, size: Int) = Modifier.offset(
+            w * x,
+            (floorY + depth * (h.value - floorY) - size).dp,
+        )
+
         @Composable
-        fun item(id: String, x: Float, y: Float, size: Int) {
+        fun item(id: String, modifier: Modifier, size: Int) {
             val shop = ShopItem.byId(id) ?: return
             if (id !in placed) return
-            ArtIcon(shop.icon, size.dp, Modifier.offset(w * x, h * y))
+            ArtIcon(shop.icon, size.dp, modifier)
         }
-        item("picture", 0.05f, 0.08f, 56)
-        item("plant", 0.80f, 0.36f, 60)
-        item("scratcher", 0.03f, 0.40f, 76)
-        item("cushion", 0.38f, 0.50f, 64)
+        // 액자는 벽에 (바닥선보다 위)
+        item("picture", Modifier.offset(w * 0.05f, maxOf(8f, floorY - 56f - floorY * 0.3f).dp), 56)
+        item("scratcher", onFloor(0.03f, 0.06f, 80), 80)
+        item("plant", onFloor(0.84f, 0.04f, 60), 60)
+        item("cushion", onFloor(0.38f, 0.22f, 64), 64)
         if ("box" in placed) {
-            Box(Modifier.offset(w * 0.70f, h * 0.53f)) {
+            Box(onFloor(0.60f, 0.12f, 72)) {
                 if (inBox != null) {
                     val form = Form.of(CatId.of(inBox.id), inBox.stage)
                     Image(
