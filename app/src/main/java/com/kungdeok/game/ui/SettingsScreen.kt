@@ -114,6 +114,24 @@ fun SettingsScreen(canDrawOverlays: Boolean, notificationsAllowed: Boolean) {
             )
         }
 
+        var mobsOn by remember { mutableStateOf(settings.mobs) }
+        SettingCard("바탕화면 잡몹") {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("가끔 잡몹이 나와요", fontSize = 14.sp)
+                    Text(
+                        "🐭🪰🦗🐞🕷️🦋 2~5분마다 한 마리. 톡 하면 고양이가 달려가 잡고 경험치와 골드를 얻어요.",
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                    )
+                }
+                Switch(checked = mobsOn, onCheckedChange = {
+                    mobsOn = it
+                    settings.mobs = it
+                })
+            }
+        }
+
         var dawn by remember { mutableStateOf(settings.dawnWake) }
         SettingCard("실제 버릇") {
             Row(verticalAlignment = Alignment.CenterVertically) {

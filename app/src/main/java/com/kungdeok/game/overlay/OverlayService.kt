@@ -47,6 +47,17 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks, SavedStateRegist
     private val savedStateController = SavedStateRegistryController.create(this)
     override val savedStateRegistry: SavedStateRegistry get() = savedStateController.savedStateRegistry
 
+    /** 바탕화면 잡몹 */
+    private val mobs by lazy {
+        MobManager(
+            this, wm,
+            hunters = {
+                if (fused) listOfNotNull(fusionView?.let { null to it }) else cats.map { (id, v) -> id to v }
+            },
+            onCaught = { cat, exp, gold -> lifecycleScope.launch { repo.rewardHunt(cat, exp, gold) } },
+        )
+    }
+
     /** 고양이를 톡 하면 머리 위에 뜨는 작은 메뉴 */
     private var menu: CatMenu? = null
     /** 메뉴가 그리는 게임 상태 (Compose 가 지켜봄) */
@@ -88,6 +99,7 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks, SavedStateRegist
             checkDawn(frameTimeNanos)
             if (!fused) director?.step(dt)
             activeViews.forEach { it.step(dt) }
+            mobs.step(dt, enabled = settings.mobs && !settings.hidden && screenReady)
             Choreographer.getInstance().postFrameCallback(this)
         }
     }
@@ -202,6 +214,7 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks, SavedStateRegist
     private fun applyScreen(firstTime: Boolean) {
         val (w, bottom) = screenSize()
         screenWidth = w
+        mobs.setScreen(w, bottom)
         allViews.forEach { it.setScreen(w, bottom, firstTime) }
     }
 
@@ -230,6 +243,7 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks, SavedStateRegist
     }
 
     private fun hideCats() {
+        mobs.clear()
         allViews.forEach { runCatching { it.detach() } }
     }
 
@@ -287,6 +301,7 @@ class OverlayService : LifecycleService(), CatOverlayCallbacks, SavedStateRegist
     }
 
     private fun pause() {
+        mobs.clear()
         running = false
         Choreographer.getInstance().removeFrameCallback(frameCallback)
         tickJob?.cancel()

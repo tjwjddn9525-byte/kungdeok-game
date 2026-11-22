@@ -38,7 +38,13 @@ class OverlaySettings(context: Context) {
         get() = prefs.getBoolean(KEY_DAWN, true)
         set(v) = prefs.edit().putBoolean(KEY_DAWN, v).apply()
 
+    /** 바탕화면에 잡몹이 나오기 */
+    var mobs: Boolean
+        get() = prefs.getBoolean(KEY_MOBS, true)
+        set(v) = prefs.edit().putBoolean(KEY_MOBS, v).apply()
+
     companion object {
+        const val KEY_MOBS = "mobs"
         const val KEY_DAWN = "dawn_wake"
         const val KEY_ENABLED = "enabled"
         const val KEY_HIDDEN = "hidden"

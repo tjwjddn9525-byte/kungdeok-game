@@ -32,6 +32,8 @@ enum class Behavior {
     WALK, SIT, LOOK, NAP,
     /** 실제 버릇 (3단계): 박스에 쏙, 우다다, 꾹꾹이 */
     BOX, ZOOM, KNEAD,
+    /** 잡몹을 덮치는 점프 */
+    POUNCE,
 }
 
 /** 관계 연출용 특수 효과 */
@@ -47,6 +49,8 @@ data class Script(
     val seconds: Float,
     val faceRight: Boolean? = null,
     val effect: Effect = Effect.NONE,
+    /** 목표까지 가는 속도 (dp/초). 사냥할 때는 빠르게 달려간다. */
+    val speedDp: Float = 40f,
 )
 
 interface CatOverlayCallbacks {
@@ -126,6 +130,7 @@ class CatOverlay(
     private var tempBubbleTime = 0f
 
     private val scripts = ArrayDeque<Script>()
+    private var pounceProgress = 0f
     private var scriptHoldLeft = -1f
     private var effect = Effect.NONE
     private var effectTime = 0f
@@ -265,6 +270,11 @@ class CatOverlay(
     val spriteTopY: Float get() = y + viewH - spriteSizePx
     val windowBottomY: Float get() = y + viewH
 
+    /** 덮치는 중인지 (잡몹 판정용) */
+    val pouncing: Boolean get() = behavior == Behavior.POUNCE && !dragging
+    val pounceT: Float get() = pounceProgress
+    val awake: Boolean get() = !asleep
+
     /** 메뉴가 떠 있는 동안 제자리에 앉아 있게 한다. */
     var held = false
     val widthPx: Int get() = viewW
@@ -380,7 +390,7 @@ class CatOverlay(
                 if (x >= maxX) { x = maxX; direction = -1 }
                 facingRight = direction > 0
             }
-            Behavior.SIT, Behavior.NAP, Behavior.BOX, Behavior.KNEAD -> Unit
+            Behavior.SIT, Behavior.NAP, Behavior.BOX, Behavior.KNEAD, Behavior.POUNCE -> Unit
         }
     }
 
@@ -391,9 +401,9 @@ class CatOverlay(
         if (scriptHoldLeft < 0f) {
             // 1) 목표 지점까지 걷기 (잠든 고양이는 그 자리에서)
             if (tx != null && !asleep && abs(x - tx) > dp(3f)) {
-                behavior = Behavior.WALK
+                behavior = if (sc.speedDp > 80f) Behavior.ZOOM else Behavior.WALK
                 val dir = if (tx > x) 1 else -1
-                x += dir * dp(40f) * dt
+                x += dir * dp(sc.speedDp) * dt
                 if ((dir > 0 && x > tx) || (dir < 0 && x < tx)) x = tx
                 facingRight = dir > 0
                 return true
@@ -404,6 +414,7 @@ class CatOverlay(
         }
         // 2) 자리에서 행동 유지
         behavior = if (asleep) Behavior.NAP else sc.hold
+        pounceProgress = if (sc.hold == Behavior.POUNCE) (1f - scriptHoldLeft / sc.seconds).coerceIn(0f, 1f) else 0f
         sc.faceRight?.let { facingRight = it }
         effectTime += dt
         scriptHoldLeft -= dt
@@ -497,6 +508,11 @@ class CatOverlay(
             dragging -> Unit
             behavior == Behavior.WALK && !falling -> hop = abs(sin(time * 9f)) * dp(4f)
             behavior == Behavior.ZOOM -> hop = abs(sin(time * 20f)) * dp(7f)
+            // 덮치기: 높이 뛰었다가 납작하게 착지
+            behavior == Behavior.POUNCE -> {
+                hop = sin(pounceProgress * Math.PI.toFloat()) * dp(28f)
+                if (pounceProgress > 0.85f) squash = 0.85f
+            }
             behavior == Behavior.KNEAD -> squash = 1f - 0.05f * abs(sin(time * 8f))
             behavior == Behavior.NAP -> squash = 1f - 0.03f * (1 + sin(time * 2.5f))
             effect == Effect.DUST -> hop = abs(sin(time * 23f)) * dp(5f)

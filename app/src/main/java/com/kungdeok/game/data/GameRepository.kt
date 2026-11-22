@@ -187,6 +187,18 @@ class GameRepository(
         if (s.kung.hunger <= s.nodeok.hunger) CatId.KUNG else CatId.NODEOK
     }
 
+    // ---- 바탕화면 잡몹 ----
+
+    /** 잡몹을 잡은 보상. [cat] 이 null 이면 합체한 쿵덕몬이 잡은 것 (둘 다 경험치). */
+    suspend fun rewardHunt(cat: CatId?, exp: Int, gold: Int) = mutex.withLock {
+        var s = loadAndAdvance()
+        val targets = cat?.let { listOf(it) } ?: CatId.entries
+        for (id in targets) s = s.withCat(id, ExpRules.addExp(s.cat(id), exp.toDouble()))
+        s = s.copy(game = s.game.copy(gold = s.game.gold + gold))
+        s = checkEvolution(s)
+        save(s)
+    }
+
     // ---- 캣타워 (3단계) ----
 
     /** 도전 시작: 두 마리 배고픔·졸림을 조금 쓰고 전투를 만든다. 못 하면 이유 문자열. */
