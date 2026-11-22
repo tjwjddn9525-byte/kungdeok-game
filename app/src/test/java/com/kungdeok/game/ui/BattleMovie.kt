@@ -20,9 +20,9 @@ class BattleMovie {
         environment = detectEnvironment().run { copy(compileSdkVersion = 34) },
     )
 
-    private fun record(action: BattleAction, name: String, floor: Int = 3) {
+    private fun record(action: BattleAction, name: String, floor: Int = 3, nodeokStage: Int = 3) {
         val k = CatEntity("kung", stage = 2, level = 8)
-        val n = CatEntity("nodeok", stage = 3, level = 15)
+        val n = CatEntity("nodeok", stage = nodeokStage, level = 15)
         val start = BattleRules.start(floor, k, n)
         val b = BattleRules.act(start, action, Random(7))
         val view = ComposeView(paparazzi.context)
@@ -38,4 +38,5 @@ class BattleMovie {
     @Test fun attack() = record(BattleAction.ATTACK, "attack")
     @Test fun kungSkill() = record(BattleAction.KUNG_SKILL, "kungSkill")
     @Test fun nodeokSkill() = record(BattleAction.NODEOK_SKILL, "nodeokSkill")
+    @Test fun kongdeokAttack() = record(BattleAction.ATTACK, "kongdeok", nodeokStage = 1)
 }

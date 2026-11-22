@@ -53,6 +53,9 @@ enum class Form(
     /** 전투 무대용 큰 프레임: walk1, walk2, sleep */
     fun largeFrameAsset(frame: String): String = "large/" + asset.removeSuffix(".png") + "_$frame.png"
 
+    /** 전투 공격 프레임 (PixelLab, tools/pixellab_attack.py) */
+    fun largeAttackAsset(n: Int): String = "large/" + asset.removeSuffix(".png") + "_attack$n.png"
+
     /** 그림이 왼쪽을 보고 있는 형태 (전투에서 적 쪽인 오른쪽을 보게 뒤집는다) */
     val facesLeft: Boolean get() = this == KUNG_3 || this == NODEOK_3
 

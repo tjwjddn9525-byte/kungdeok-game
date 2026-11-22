@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -75,7 +76,7 @@ private class Actor {
     val ghost = Animatable(0f)
     /** 잔상이 남는 방향 (+1 = 오른쪽으로 달림, 잔상은 왼쪽에) */
     var ghostDir by mutableIntStateOf(1)
-    /** 그릴 프레임: 0 기본, 1·2 걷기(달리기), 3 잠자기 */
+    /** 그릴 프레임: 0 기본, 1·2 걷기(달리기), 3 잠자기, 11~ 공격 프레임 (PixelLab) */
     var frame by mutableIntStateOf(0)
 }
 
@@ -132,6 +133,14 @@ fun BattleStage(
     var hpEnemy by remember { mutableIntStateOf(b.enemy.hp) }
 
     val density = LocalDensity.current
+    val context = LocalContext.current
+    // 형태별 공격 프레임 수 (PixelLab 으로 만든 sprites/large/<형태>_attack<n>.png, 없으면 0)
+    val attackFrames = remember(b.kung.form, b.nodeok.form) {
+        CatId.entries.associateWith { id ->
+            val form = b.fighter(id).form
+            (1..16).takeWhile { Sprites.bitmapOrNull(context, form.largeAttackAsset(it)) != null }.size
+        }
+    }
 
     BoxWithConstraints(
         modifier
@@ -246,10 +255,28 @@ fun BattleStage(
                                     launch { a.y.animateTo(-catSize * 0.12f, tween(110)); a.y.animateTo(0f, tween(110)) }
                                     a.x.animateTo(reach, tween(220, easing = FastOutSlowInEasing))
                                     run.cancel()
-                                    // 3) 할퀴기: 앞으로 확 기울며 자국
-                                    a.rot.snapTo(20f)
-                                    slash(hitX, hitY, enemySize * 0.7f)
-                                    delay(70) // 히트스톱
+                                    val nAtk = attackFrames.getValue(e.cat)
+                                    if (nAtk > 0) {
+                                        // 3) 공격 프레임: 힘 모으기 → 앞발 휘두르기 (그림 자체가 할퀸다)
+                                        a.rot.snapTo(0f)
+                                        val strikeAt = (nAtk * 3) / 8 + 1 // 앞발이 나가는 프레임
+                                        launch {
+                                            for (k in 1..nAtk) {
+                                                a.frame = 10 + k
+                                                delay(if (k < strikeAt) 70 else 60)
+                                            }
+                                            a.frame = 0
+                                        }
+                                        delay(70L * (strikeAt - 1))
+                                        launch { a.rot.animateTo(6f, tween(60)) }
+                                        slash(hitX, hitY, enemySize * 0.7f)
+                                        delay(70) // 히트스톱
+                                    } else {
+                                        // 3) 할퀴기: 앞으로 확 기울며 자국
+                                        a.rot.snapTo(20f)
+                                        slash(hitX, hitY, enemySize * 0.7f)
+                                        delay(70) // 히트스톱
+                                    }
                                     // 4) 맞음
                                     launch { react(enemy, enemySize * 0.18f, 10f) }
                                     launch { shakeScreen(7f) }
@@ -257,7 +284,8 @@ fun BattleStage(
                                     pop("💥", hitX, hitY - enemySize * 0.15f, 34, Color.White, rise = false)
                                     pop("-${e.dmg}", enemyX, ground - enemySize * 1.05f, 24, Color(0xFFFFE082))
                                     hpEnemy = e.enemyHp
-                                    // 5) 돌아오기
+                                    // 5) 돌아오기 (공격 프레임이 끝날 때까지 잠깐 기다림)
+                                    if (nAtk > 0) delay(60L * (nAtk - ((nAtk * 3) / 8 + 1)).coerceAtLeast(0))
                                     launch { a.rot.animateTo(0f, tween(160)) }
                                     launch { a.ghost.animateTo(0f, tween(200)) }
                                     a.ghostDir = -1
@@ -517,9 +545,11 @@ private fun CatActor(a: Actor, form: Form, hp: Int, maxHp: Int, centerX: Float, 
     val base = rememberSprite(form.largeAsset)
     val walk1 = rememberSpriteOrNull(form.largeFrameAsset("walk1"))
     val walk2 = rememberSpriteOrNull(form.largeFrameAsset("walk2"))
-    val sprite = when (a.frame) {
-        1 -> walk1 ?: base
-        2 -> walk2 ?: base
+    val attack = (1..16).map { rememberSpriteOrNull(form.largeAttackAsset(it)) }
+    val sprite = when {
+        a.frame == 1 -> walk1 ?: base
+        a.frame == 2 -> walk2 ?: base
+        a.frame > 10 -> attack.getOrNull(a.frame - 11) ?: base
         else -> base
     }
     // 왼쪽을 보는 그림은 적(오른쪽) 쪽을 보게 뒤집는다
