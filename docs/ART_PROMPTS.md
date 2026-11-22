@@ -197,3 +197,37 @@ Do not add anything else (no ground, no shadow, no "Z" letters).
 
 받은 그림은 저에게 주시면 세 장으로 잘라서 `raw/<형태 파일 이름>_walk1.png`, `_walk2.png`, `_sleep.png` 로 넣겠습니다.
 (직접 자르실 필요 없이 한 장 그대로 `raw/ui/frames_<형태 파일 이름>.png` 로 올려 주셔도 됩니다.)
+
+## 20. 캐릭터 공격·기술 프레임 (형태마다 한 장, 새 대화 + 원래 그림 첨부)
+
+공통 프롬프트 끝에 형태별 한 줄을 붙여 보냅니다. 결과는 `raw/ui/attack_<형태 이름>.png`.
+1~4번은 캣타워 냥냥펀치(와 바탕화면 잡몹 사냥), 5~6번은 쿵 기술·노덕 기술에 쓰입니다.
+
+```
+This is a character from my pixel art game (attached). Draw 6 battle animation frames of EXACTLY this same character — same design, same colors, same outline, same pixel size, same overall size, same facing direction as the attached image — arranged in a grid of 3 columns and 2 rows with lots of white space between them, white background, no text, no effects, no ground, no shadow.
+Frames (left to right, top to bottom):
+1. ready stance: exactly the attached pose
+2. wind-up: crouching low, gathering strength, body pulled back
+3. pounce: leaping forward, front paws (or weapon) raised high
+4. strike: swiping down hard with claws (or weapon), full extension
+5. special move start (see below)
+6. special move impact (see below)
+Strike in the direction the character is facing; if it faces the viewer, strike toward the right side of the image.
+Special move:
+```
+
+| 형태 | 붙일 문장 | 완료 |
+|---|---|---|
+| kung_1_somkungmon (솜쿵몬) | `5: curled into a spinning fluffy ball in mid-air, 6: slamming down onto the ground as a ball, fur puffed out` | ☐ |
+| kung_2_kungnyangmon (쿵냥몬) | `5: jumping high with head lowered for a headbutt, 6: diving down head-first in a powerful headbutt` | ☐ |
+| kung_3_galgikungmon (갈기쿵몬) | `5: rearing up with mane flaring and a cold glare, 6: lunging with jaws open and claws spread` | ☐ |
+| kung_4_sajakungmon (사자쿵몬) | `5: inhaling deeply with chest puffed and mane blowing back, 6: roaring forward with claw gauntlets slashing` | ☐ |
+| kung_5_eunhakungmon (은하쿵몬) | `5: soaring upward with star wings spread and sword raised overhead, 6: diving down sword-first like a meteor` | ☐ |
+| nodeok_1_kongdeokmon (콩덕몬) | `5: puffing up into a round grumpy ball, 6: glaring hard with a tiny paw swipe` | ☐ (PixelLab 시험본 있음) |
+| nodeok_2_nodeokmon (노덕몬) | `5: winding up a chocolate paw punch, 6: throwing a full-power jelly-paw punch forward` | ☐ |
+| nodeok_3_mukjikdeokmon (묵직덕몬) | `5: jumping up high belly-first, 6: slamming down flat with its full weight` | ☐ |
+| nodeok_4_gureumdeokmon (구름덕몬) | `5: rising with the cloud scarf billowing and bear-paw gauntlets raised, 6: smashing both gauntlets down onto the ground` | ☐ |
+| nodeok_5_deokhwangmon (덕황몬) | `5: raising the golden scepter high above the head, 6: slamming the scepter straight down` | ☐ |
+| fusion_kungdeokmon (쿵덕몬) | `5: rising with the star sword and the emperor spear crossed overhead, 6: striking down with both weapons at once` | ☐ |
+
+한 번에 6칸이 잘 안 나오면 5·6번 줄을 빼고 "2 columns and 2 rows" 로 1~4번만 먼저 받아도 됩니다.
